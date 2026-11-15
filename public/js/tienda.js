@@ -1794,6 +1794,19 @@
     // Volvió después de una recarga o de cambiar a Nequi: lo llevamos directo al pago
     if (S.order && S.order.step === 'pago' && !stack.length) resumeOrder();
     else if (wantOrders && !stack.length) openOrders(/^(PC|KS)-\d{8}-\d{4}$/.test(lnkNum) ? lnkNum : '');
+    // Enlace directo a un producto (?producto=ID&color=Negro), p. ej. desde Google Shopping
+    else if (qs.get('producto') && !stack.length) {
+      var lp = String(qs.get('producto')).slice(0, 80), lc = String(qs.get('color') || '').trim().toLowerCase().slice(0, 40), tries = 0;
+      (function abrirEnlazado() {
+        // Si el catálogo aún no llegó (conexión lenta), esperamos hasta ~15 s
+        if (!S.products.some(function (x) { return x.id === lp; })) { if (++tries < 50) setTimeout(abrirEnlazado, 300); return; }
+        openProduct(lp);
+        if (lc && S.sel && S.sel.p && S.sel.p.id === lp) {
+          var ci = (S.sel.p.colors || []).findIndex(function (c) { return String(c.n).trim().toLowerCase() === lc; });
+          var bc = ci > 0 && document.querySelector('#pdColors [data-color="' + ci + '"]'); if (bc) bc.click();
+        }
+      })();
+    }
     else if (hasHistory()) fetchOrders();
   });
   if (!document.getElementById('kLoader')) setTimeout(function () { window.dispatchEvent(new Event('kairo:ready')); }, 0);

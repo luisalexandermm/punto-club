@@ -91,3 +91,11 @@ Tienda en HTML/CSS/JS, funciones serverless en `api/` (Vercel) y base de datos e
 - Llena los datos legales en `public/js/negocio.js` (aparecen como [COMPLETAR] hasta que lo hagas). Ver `PENDIENTES-LEGALES.md`.
 - Cambia la contraseña del panel (Ajustes) y **rota la clave service de Supabase** si alguna vez estuvo en un zip o repositorio.
 - El recibo no es factura electrónica de la DIAN.
+
+## Google Merchant Center (feed de productos)
+
+- El catálogo para Google está en `https://TU-DOMINIO/feed.xml` (lo genera `api/feed.js` con los productos activos).
+- En Merchant Center: **Productos → Fuentes → Agregar fuente → Archivo (URL)** y pega esa dirección (no la de la tienda: esa es una página HTML y Google la rechaza).
+- Cada color es un producto con su foto; todos los colores de un modelo comparten `item_group_id`. Precio con la promoción vigente como `sale_price`, envío nacional incluido.
+- Los productos **sin foto no se envían** (Google exige imagen real). Si un color no tiene foto propia, se usa la foto principal.
+- Cada producto enlaza a `/?producto=ID&color=Color`, que abre el producto con ese color ya elegido.
