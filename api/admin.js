@@ -398,6 +398,7 @@ module.exports = async (req, res) => {
           ...o.customer,
           pagoReportado: {
             ref: o.customer.pagoReportado.ref,
+            cuenta: o.customer.pagoReportado.cuenta || '',
             at: o.customer.pagoReportado.at,
             hasComprobante: !!o.customer.pagoReportado.comprobantePath
           }

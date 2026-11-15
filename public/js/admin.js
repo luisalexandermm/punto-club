@@ -575,7 +575,7 @@
         '</summary>' +
         '<div class="ocard__body">' +
         (c.wompi ? '<p class="ref-box"><b>Wompi: ' + esc(WOMPI_TXT[c.wompi.status] || c.wompi.status) + '</b>' + (c.wompi.metodo ? ' · ' + esc(c.wompi.metodo) : '') + ' · ' + money(c.wompi.valor) + ' <small>(' + fdate(c.wompi.at) + ')</small><br>Transacción ' + esc(c.wompi.transactionId) + ' · Ref. ' + esc(c.wompi.reference) + '</p>' : '') +
-        (c.pagoReportado ? '<p class="ref-box"><b>El cliente reportó su pago</b>' + (c.pagoReportado.ref ? ' · Referencia: ' + esc(c.pagoReportado.ref) : '') + ' <small>(' + fdate(c.pagoReportado.at) + ')</small><br>Revisa que el pago llegó a tu cuenta (Nequi o Bre-B) antes de confirmar.' + (c.pagoReportado.hasComprobante ? ' <button class="btn btn-line btn-sm" type="button" data-proof="' + esc(o.id) + '">Ver foto del comprobante</button>' : '') + '</p>' : '') +
+        (c.pagoReportado ? '<p class="ref-box"><b>El cliente reportó su pago</b>' + (c.pagoReportado.ref ? ' · Referencia: ' + esc(c.pagoReportado.ref) : '') + ' <small>(' + fdate(c.pagoReportado.at) + ')</small><br>Revisa que el pago llegó a tu cuenta antes de confirmar.' + (c.pagoReportado.cuenta ? ' El cliente dice que pagó a: <b>' + esc(c.pagoReportado.cuenta) + '</b>.' : '') + '' + (c.pagoReportado.hasComprobante ? ' <button class="btn btn-line btn-sm" type="button" data-proof="' + esc(o.id) + '">Ver foto del comprobante</button>' : '') + '</p>' : '') +
         '<div class="ocard__grid">' +
           '<section class="osec osec--envio" aria-label="Datos de envío">' +
             '<div class="osec__head"><h3>Datos de envío</h3>' + (c.entrega !== 'Recoger' ? '<button type="button" class="btn btn-line btn-sm" data-copyship="' + esc(o.id) + '">' + ICON_COPY + 'Copiar para la guía</button>' : '') + '</div>' +
@@ -618,7 +618,7 @@
     if (o && o.status === 'Recibido' && body.status !== 'Recibido' && body.status !== 'Cancelado' &&
       !(o.customer && o.customer.wompi && o.customer.wompi.status === 'APPROVED') &&
       !(o.customer && o.customer.pago === 'En tienda') &&
-      !confirm('¿Ya verificaste' + (o.customer && o.customer.pago === 'Wompi' ? ' en Wompi' : ' en tu cuenta (Nequi o Bre-B)') + ' que llegó el pago de ' + money((o.pricing || {}).pagarAhora || o.total) + ' para el pedido ' + id + '?')) return;
+      !confirm('¿Ya verificaste' + (o.customer && o.customer.pago === 'Wompi' ? ' en Wompi' : ' en tu cuenta') + ' que llegó el pago de ' + money((o.pricing || {}).pagarAhora || o.total) + ' para el pedido ' + id + '?')) return;
     var btn = f.querySelector('[type=submit]'); btn.disabled = true;
     try {
       var upd = await api('/admin/orders/' + encodeURIComponent(id), { method: 'PUT', body: body });
@@ -1144,9 +1144,10 @@
     catch (err) { toast(err.message, 6000); }
   });
 
-  /* ---------------- cuentas para recibir pagos (por ahora solo Nequi o llave Bre-B) ---------------- */
-  var BANCOS = ['Nequi', 'Bre-B'];
-  var TIPOS = ['Llave Bre-B', 'Número de celular'];
+  /* ---------------- cuentas para recibir pagos (Nequi, Bre-B y otros bancos, cada una con su QR) ---------------- */
+  /* Debe coincidir con lib/cuentas.js */
+  var BANCOS = ['Nequi', 'Bre-B', 'Bancolombia', 'Daviplata', 'Davivienda', 'Banco de Bogotá', 'BBVA', 'Nu', 'Otro'];
+  var TIPOS = ['Llave Bre-B', 'Número de celular', 'Cuenta de ahorros', 'Cuenta corriente'];
   function opts(list, sel) { return list.map(function (x) { return '<option' + (x === sel ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join(''); }
   function acctRow(a) {
     var qr = safeUrl(a.qr || '');
@@ -1154,7 +1155,7 @@
       '<div class="acct-qr">' + (qr ? '<img src="' + esc(qr) + '" alt="QR de la cuenta">' : '<span>Sin QR</span>') + '</div>' +
       '<div class="acct-fields">' +
       '<label>Banco o app<select name="banco">' + opts(BANCOS, a.banco || 'Nequi') + '</select></label>' +
-      '<label class="acct-otro"' + (a.banco === 'Otro' ? '' : ' hidden') + '>Nombre<input name="nombre" maxlength="30" value="' + esc(a.nombre || '') + '" placeholder="Ej.: Nu"></label>' +
+      '<label class="acct-otro"' + (a.banco === 'Otro' ? '' : ' hidden') + '>Nombre del banco<input name="nombre" maxlength="30" value="' + esc(a.nombre || '') + '" placeholder="Ej.: Banco Caja Social"></label>' +
       '<label>Titular<input name="titular" maxlength="80" value="' + esc(a.titular || '') + '" placeholder="Nombre que ve el cliente"></label>' +
       '<label>Tipo<select name="tipo">' + opts(TIPOS, a.tipo || 'Número de celular') + '</select></label>' +
       '<label>Número o llave<input name="numero" maxlength="40" value="' + esc(a.numero || '') + '" placeholder="Ej.: 3145312045"></label>' +
@@ -1180,7 +1181,12 @@
   });
   $('acctList').addEventListener('change', async function (e) {
     var row = e.target.closest('.acct-row'); if (!row) return;
-    if (e.target.name === 'banco') row.querySelector('.acct-otro').hidden = e.target.value !== 'Otro';
+    if (e.target.name === 'banco') {
+      row.querySelector('.acct-otro').hidden = e.target.value !== 'Otro';
+      // Tipo sugerido según el banco (se puede cambiar)
+      var v = e.target.value, tipo = row.querySelector('[name="tipo"]');
+      tipo.value = v === 'Bre-B' ? 'Llave Bre-B' : v === 'Nequi' || v === 'Daviplata' ? 'Número de celular' : 'Cuenta de ahorros';
+    }
     if (e.target.type === 'file') {
       var url = await upload(e.target.files[0]);
       if (url) { var a = readAccount(row); a.qr = url; row.outerHTML = acctRow(a); toast('QR listo. Recuerda “Guardar cuentas”.'); }
@@ -1197,7 +1203,8 @@
     var bad = '';
     cuentas.forEach(function (a) {
       var n = a.banco === 'Otro' ? (a.nombre || 'la cuenta') : a.banco;
-      if (!a.numero && !a.qr) bad = bad || 'A ' + n + ' le falta el número o la foto del QR.';
+      if (a.banco === 'Otro' && !a.nombre) bad = bad || 'Escribe el nombre del banco de la cuenta "Otro".';
+      else if (!a.numero && !a.qr) bad = bad || 'A ' + n + ' le falta el número o la foto del QR.';
       else if (!a.titular) bad = bad || 'Escribe el titular de ' + n + ': el cliente lo usa para confirmar a quién le paga.';
     });
     if (!cuentas.length) bad = 'Deja al menos una cuenta para que los clientes puedan pagar.';

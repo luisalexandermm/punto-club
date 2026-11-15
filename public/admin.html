@@ -120,7 +120,7 @@
 
     <!-- Pedidos -->
     <section class="view" id="view-pedidos" aria-labelledby="h-ped">
-      <div class="head"><div><h1 class="display" id="h-ped">Pedidos</h1><p>Todos los pedidos nuevos son <b>envíos nacionales</b> por transportadora. Confirma cada pago revisando que el dinero llegó a tu Nequi o llave Bre-B antes de marcar “Pago confirmado”, y al despachar escribe la transportadora y el número de guía.</p></div><button class="btn btn-line btn-sm" data-reload>Actualizar</button></div>
+      <div class="head"><div><h1 class="display" id="h-ped">Pedidos</h1><p>Todos los pedidos nuevos son <b>envíos nacionales</b> por transportadora. Confirma cada pago revisando que el dinero llegó a tu cuenta (Nequi, Bre-B o el banco que hayas configurado) antes de marcar “Pago confirmado”, y al despachar escribe la transportadora y el número de guía.</p></div><button class="btn btn-line btn-sm" data-reload>Actualizar</button></div>
       <div class="toolbar">
         <label class="sr-only" for="ordSearch">Buscar pedido</label>
         <input type="search" id="ordSearch" placeholder="Buscar por número, nombre o celular">
@@ -186,7 +186,7 @@
       </form>
       <form class="panel dom-panel" id="acctForm" novalidate>
         <h2>Cuentas para recibir pagos</h2>
-        <p class="hint">Por ahora solo se recibe por transferencia o QR a <b>Nequi</b> o a una <b>llave Bre-B</b> (Wompi está en pausa). El cliente paga desde la app de cualquier banco y ve tu QR, el titular y el número o llave. Puedes tener hasta 6.</p>
+        <p class="hint">Se recibe por transferencia o QR (Wompi está en pausa). Agrega <b>Nequi</b>, una <b>llave Bre-B</b>, <b>Bancolombia</b>, <b>Daviplata</b> u otro banco, cada uno con la foto de su QR. El cliente elige la cuenta en pestañas y ve el QR, el titular y el número. Puedes tener hasta 6; la primera es la que se muestra de entrada.</p>
         <p class="ref-box" id="acctWarn" hidden>Para guardar, primero ejecuta <code>lib/migracion-domicilios-2026-11.sql</code> en el editor SQL de Supabase. Mientras tanto, la tienda muestra la cuenta Nequi de <code>public/js/negocio.js</code>.</p>
         <div id="acctList"></div>
         <button type="button" class="btn btn-line btn-sm" id="acctAdd">+ Agregar cuenta</button>
@@ -270,6 +270,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/admin.js?v=27"></script>
+<script src="/js/admin.js?v=28"></script>
 </body>
 </html>

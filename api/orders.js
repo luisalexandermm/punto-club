@@ -35,7 +35,7 @@ function receiptText(numero, items, customer, pricing) {
   if (pricing.coupon) extra.push(`Cupón ${pricing.coupon.code}: -${money(pricing.coupon.discount)}`);
   extra.push(`Envío nacional: ${pricing.envio ? money(pricing.envio) : 'gratis'}`);
   if (pricing.caja) extra.push(`Caja personalizada: ${money(pricing.caja)}`);
-  const pago = `Pago por transferencia o QR (Nequi o Bre-B): ${money(pricing.pagarAhora)}. Envíanos el comprobante.`;
+  const pago = `Pago por transferencia o QR: ${money(pricing.pagarAhora)}. Envíanos el comprobante.`;
   const entrega = `Envío a: ${customer.direccion}${customer.barrio ? ', ' + customer.barrio : ''}, ${customer.ciudad}, ${customer.departamento}`;
   return `Punto Club — Pedido ${numero}\n\n${lines}\n\n${extra.join('\n')}\nTotal: ${money(pricing.totalConEnvio)}\n${pago}\n` +
     `${entrega}\n` + (customer.empaque === 'Con caja'
@@ -86,7 +86,7 @@ module.exports = async (req, res) => {
   if (customer.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.correo)) return err(res, 'El correo no es válido', 400);
   /* Plazo estimado que se le promete al cliente: queda guardado con el pedido */
   customer.plazo = plazoEntrega(customer.departamento, customer.empaque);
-  if (!customer.pago) return err(res, 'Por ahora solo recibimos pagos por transferencia o QR (Nequi o Bre-B). Recarga la página.', 400);
+  if (!customer.pago) return err(res, 'Por ahora solo recibimos pagos por transferencia o QR. Recarga la página.', 400);
 
   /* Freno contra pedidos falsos en serie (scripts o la consola del navegador) */
   if (await limitar(supabase, req, 'pedido', 8, 60)) return demasiados(res, 60, 'Has enviado muchos pedidos seguidos. Si necesitas ayuda, escríbenos por WhatsApp.');

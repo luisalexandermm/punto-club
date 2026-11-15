@@ -1089,7 +1089,7 @@
     try {
       $('fReceipt-status').textContent = 'Preparando y enviando la foto…';
       var comprobante = await receiptData(file);
-      var result = await api('/api/track', { numero: S.order.numero, ultimos4: S.order.ultimos4, reportarPago: true, comprobante: comprobante });
+      var result = await api('/api/track', { numero: S.order.numero, ultimos4: S.order.ultimos4, reportarPago: true, comprobante: comprobante, cuenta: CUENTAS[S.acct || 0] ? acctName(CUENTAS[S.acct || 0]) : '' });
       sentProof = comprobante;
       S.order.comprobante = result.comprobanteRecibido;
       S.order.step = 'reportado'; store.set(K_ORDER, S.order);
@@ -1761,7 +1761,7 @@
     if (s.envio != null && isFinite(s.envio)) { ENVIO = Number(s.envio); renderCart(); if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
     if (Array.isArray(s.departamentos) && s.departamentos.length) { DEPTOS = s.departamentos; renderDeptos(); }
     if (s.plazos && typeof s.plazos === 'object') { PLAZOS = s.plazos; if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
-    // Wompi está en pausa: la tienda solo ofrece transferencia o QR (Nequi / Bre-B)
+    // Wompi está en pausa: la tienda solo ofrece transferencia o QR (cuentas configuradas en el panel)
     if (typeof s.push === 'string' && s.push !== PUSH_KEY) { PUSH_KEY = s.push; renderPushSlots(); syncPush(); }
     var m = encodeURIComponent('Hola Punto Club, quiero hacer una consulta.');
     $('waHelp').href = 'https://wa.me/' + WA + '?text=' + m;

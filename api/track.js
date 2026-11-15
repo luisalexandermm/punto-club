@@ -65,6 +65,7 @@ module.exports = async (req, res) => {
   /* El cliente reporta su pago por Nequi */
   if (b.reportarPago != null) {
     const ref = typeof b.reportarPago === 'string' ? cleanText(b.reportarPago, 60) : '';
+    const cuenta = cleanText(b.cuenta, 40); // a qué cuenta dice el cliente que pagó (Nequi, Bancolombia…)
     if (status !== 'Recibido') return err(res, 'Este pedido ya no está esperando el pago.', 409);
     if (!b.comprobante) return err(res, 'Sube la foto del comprobante de pago.', 400);
 
@@ -103,7 +104,7 @@ module.exports = async (req, res) => {
       ...o.customer,
       pagoReportado: {
         ...o.customer.pagoReportado,
-        ref, at,
+        ref, at, cuenta,
         ...(uploadedPath ? { comprobantePath: uploadedPath, comprobanteMime: mime } : {})
       }
     };
