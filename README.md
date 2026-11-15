@@ -99,3 +99,11 @@ Tienda en HTML/CSS/JS, funciones serverless en `api/` (Vercel) y base de datos e
 - Cada color es un producto con su foto; todos los colores de un modelo comparten `item_group_id`. Precio con la promoción vigente como `sale_price`, envío nacional incluido.
 - Los productos **sin foto no se envían** (Google exige imagen real). Si un color no tiene foto propia, se usa la foto principal.
 - Cada producto enlaza a `/?producto=ID&color=Color`, que abre el producto con ese color ya elegido.
+
+## Gran apertura (pantalla "En construcción")
+
+- Hasta el **lunes 16 de noviembre de 2026, 12:00 a. m. (hora de Colombia)** la tienda muestra el letrero "En construcción · Gran apertura" con cuenta regresiva (`public/js/apertura.js`, `public/css/apertura.css`).
+- El servidor **no envía productos ni precios** antes de esa hora (`lib/apertura.js`): ni en la página ni desde la consola. Tampoco acepta pedidos ni cupones, y el feed de Google sale vacío.
+- Al llegar a cero, la página se recarga sola y aparece la tienda.
+- **Vista previa:** desde el panel, botón "Ver tienda": el administrador ve la tienda completa (con un aviso abajo) para revisarla antes de abrir.
+- Cambiar la hora sin tocar código: variable `APERTURA` en Vercel (p. ej. `2026-11-16T00:00:00-05:00`). Abrir ya: `APERTURA=ya`. Luego vuelve a desplegar.

@@ -59,7 +59,10 @@
     clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, 2800);
   }
   async function api(path, body) {
-    var r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {});
+    var opt = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {};
+    // El administrador que abre la tienda desde el panel ve los productos antes de la gran apertura
+    if (path === '/api/catalog') { var tk = null; try { tk = sessionStorage.getItem('kairo_token'); } catch (e) { } if (tk) opt.headers = { 'x-admin-token': tk }; }
+    var r = await fetch(path, opt);
     var ct = r.headers.get('content-type') || '';
     var d = ct.indexOf('application/json') > -1 ? await r.json() : {};
     if (!r.ok) { var e = new Error(d.error || 'No se pudo completar la operación'); e.status = r.status; throw e; }
@@ -1746,6 +1749,13 @@
       S.products = (d.products || []).filter(function (p) { return p && p.id; });
       S.promos = d.promos || []; S.ann = d.announcements || []; S.settings = d.settings || {}; S.coupons = d.coupons || [];
       S.loaded = true;
+      // Antes de la gran apertura el servidor no envía productos: se muestra el letrero "En construcción"
+      if (S.settings.apertura && window.PCApertura) {
+        PCApertura.show(S.settings.apertura, S.settings);
+        if (window.KairoLoader) window.KairoLoader.done();
+        return;
+      }
+      if (S.settings.previa && window.PCApertura) PCApertura.preview(S.settings.previa);
       applySettings();
       S.cart = S.cart.filter(function (i) { return S.products.some(function (p) { return p.id === i.id; }); });
     } catch (e) {

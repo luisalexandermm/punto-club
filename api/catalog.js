@@ -2,7 +2,7 @@
 /* GET /api/catalog — productos (con el precio final ya calculado), promociones,
    anuncios (banners, barra superior, dinámicas) y ajustes públicos de la tienda. */
 const supabase = require('../lib/supabase');
-const { ok, err, allowCors } = require('../lib/helpers');
+const { ok, err, allowCors, checkToken } = require('../lib/helpers');
 const { productPrice, isLive } = require('../lib/pricing');
 const { precioEnvio, DEPARTAMENTOS } = require('../lib/envios');
 
@@ -10,6 +10,19 @@ module.exports = async (req, res) => {
   allowCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return err(res, 'Método no permitido', 405);
+
+  /* Antes de la gran apertura no sale ningún producto ni precio: ni en la página ni en la consola.
+     El administrador con sesión abierta sí ve todo (botón "Ver tienda" del panel) para revisar. */
+  const apertura = require('../lib/apertura').cerrada();
+  const previa = !!apertura && checkToken(req.headers['x-admin-token']);
+  res.setHeader('Cache-Control', 'no-store');
+  if (apertura && !previa) {
+    const { data: s } = await supabase.from('settings').select('store_name,tagline,whatsapp').eq('id', 'app').single().then(r => r, () => ({ data: null }));
+    return ok(res, {
+      settings: { storeName: (s && s.store_name) || 'Punto Club', tagline: s && s.tagline, whatsapp: s && s.whatsapp, apertura },
+      products: [], promos: [], coupons: [], announcements: []
+    });
+  }
 
   const [{ data: products, error: pe }, { data: promos, error: me }, { data: settings, error: se }, ann, cup] =
     await Promise.all([
@@ -88,7 +101,8 @@ module.exports = async (req, res) => {
       departamentos: DEPARTAMENTOS,
       wompi: false,
       push: require('../lib/push').pushReady() ? require('../lib/push').PUBLIC_KEY : '',
-      pagos: require('../lib/cuentas').sanitize(settings.pagos)
+      pagos: require('../lib/cuentas').sanitize(settings.pagos),
+      previa: previa ? apertura : undefined
     },
     products: (products || []).map(mapProduct),
     promos: livePromos.map(pubPromo),

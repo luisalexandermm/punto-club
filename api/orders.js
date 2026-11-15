@@ -44,6 +44,7 @@ module.exports = async (req, res) => {
   allowCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return err(res, 'Método no permitido', 405);
+  if (require('../lib/apertura').cerrada()) return err(res, 'La tienda todavía no abre. ¡Te esperamos en la gran apertura!', 403);
 
   const { items, customer: c = {}, consent = {}, coupon, cliente } = req.body || {};
 

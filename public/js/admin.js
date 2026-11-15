@@ -59,6 +59,11 @@
       $('loginErr').textContent = err instanceof TypeError ? 'No se pudo conectar con el servidor.' : err.message;
     } finally { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Entrar'; }
   });
+  /* "Ver tienda" abre la pestaña heredando la sesión, así ves productos y precios antes de la gran apertura */
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-ver-tienda]'); if (!a || !TOKEN) return;
+    e.preventDefault(); window.open('/', '_blank');
+  });
   function enter() { $('loginScreen').style.display = 'none'; $('app').classList.add('on'); loadAll(); loadPushStatus(); loadSeguridad(); $('main').focus(); }
   /* Aviso si alguien intentó adivinar la contraseña del panel (últimas 24 h) */
   async function loadSeguridad() {

@@ -30,7 +30,8 @@ module.exports = async (req, res) => {
   const live = (promos || []).filter(p => isLive(p, now));
   const items = [];
 
-  for (const p of products || []) {
+  const cerrada = require('../lib/apertura').cerrada(now);
+  for (const p of cerrada ? [] : products || []) {
     const pr = productPrice(p, live, now);
     const titulo = [p.brand, p.name].filter(Boolean).join(' ').replace(new RegExp('^(' + String(p.brand || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')\\s+\\1\\b', 'i'), '$1');
     const categoria = p.category || (p.shape === 's-boot' ? 'Botas' : 'Tenis');
