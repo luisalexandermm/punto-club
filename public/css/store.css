@@ -5461,6 +5461,64 @@ html.popx-open body {
   margin-top: 2px;
 }
 
+/* Ventana "Instala la app" (primera visita) */
+.popx__pic--app {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 7;
+  background: radial-gradient(circle at 50% 40%, #145a42, #0a2a20 70%);
+}
+
+.popx__pic--app img {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  border-radius: 22px;
+  box-shadow: 0 12px 28px -10px rgba(0,0,0,.6), 0 0 0 3px rgba(255,255,255,.12);
+  animation: pc-beat 2.4s ease-in-out infinite;
+}
+
+.popx__list,
+.popx__steps {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 0;
+  text-align: left;
+  font-size: .9rem;
+}
+
+.popx__list { list-style: none; }
+
+.popx__list li {
+  position: relative;
+  padding-left: 26px;
+}
+
+.popx__list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: .15em;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--lime) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 12.5 4 4 8-9' fill='none' stroke='%23050806' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
+.popx__steps {
+  padding: 12px 14px 12px 34px;
+  border-radius: 14px;
+  background: var(--soft);
+}
+
+.popx__ico {
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  color: #0a84ff;
+}
+
 .popx__body details {
   text-align: left;
   font-size: .82rem;
@@ -5475,7 +5533,7 @@ html.popx-open body {
 
 @media (prefers-reduced-motion: reduce) {
   .popx__bg, .popx__card { transition: none; }
-  .popx__pic--plain svg { animation: none; }
+  .popx__pic--plain svg, .popx__pic--app img { animation: none; }
 }
 
 /* Video en las opiniones */

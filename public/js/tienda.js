@@ -528,7 +528,7 @@
   /* Ventana al entrar */
   var popShown = false, popPrevFocus = null;
   function maybePopup() {
-    if (popShown || !S.loaded || stack.length || (S.order && S.order.step === 'pago')) return;
+    if (popShown || !S.loaded || stack.length || !$('popx').hidden || (S.order && S.order.step === 'pago')) return;
     var seen = store.get(K_POP) || {};
     var cands = (S.coupons || []).filter(function (c) { return c.popup; }).map(function (c) { return { k: 'c:' + c.code, c: c }; })
       .concat(S.promos.filter(function (p) { return p.popup; }).map(function (p) { return { k: 'p:' + p.id, p: p }; }));
@@ -549,6 +549,9 @@
           '<button type="button" class="btn btn-lime btn-block" data-promo-go="' + esc(p.id) + '">' + (p.kind === 'informativa' ? 'Entendido' : 'Ver productos') + '</button>') +
       '<button type="button" class="link-btn popx__later" data-popx-close>Ahora no</button>' +
       ((c || p).conditions ? '<details><summary>Ver condiciones</summary><p>' + esc((c || p).conditions) + '</p></details>' : '') + '</div>';
+    showPopx();
+  }
+  function showPopx() {
     popPrevFocus = document.activeElement;
     $('popx').hidden = false;
     requestAnimationFrame(function () { $('popx').classList.add('on'); });
@@ -557,6 +560,7 @@
   }
   function closePopup() {
     if ($('popx').hidden) return;
+    if (closePopup.onClose) { var cb = closePopup.onClose; closePopup.onClose = null; cb(); }
     $('popx').classList.remove('on'); document.documentElement.classList.remove('popx-open');
     setTimeout(function () { $('popx').hidden = true; $('popxCard').innerHTML = ''; }, 220);
     if (popPrevFocus && popPrevFocus.focus) try { popPrevFocus.focus({ preventScroll: true }); } catch (e) { }
@@ -1859,7 +1863,7 @@
   window.addEventListener('scroll', function () { hdr.classList.toggle('scrolled', scrollY > 10); }, { passive: true });
 
   /* ---------------- instalar la app ---------------- */
-  var K_INSTALL = 'kairo.instalar.v1';
+  var K_INSTALL = 'kairo.instalar.v1', K_INSTALL_1 = 'kairo.instalar.primera.v1';
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var installEvt = null, appReady = false;
@@ -1868,7 +1872,8 @@
   function renderInstall() {
     var bar = $('installBar');
     var dismissed = Date.now() - ((store.get(K_INSTALL) || {}).at || 0) < 30 * 864e5;
-    var canShow = appReady && !standalone && !dismissed && !S.order && !stack.length && (installEvt || isIOS);
+    // La barra es el recordatorio: solo sale después de la ventana de la primera visita
+    var canShow = appReady && !standalone && !dismissed && !S.order && !stack.length && $('popx').hidden && !!store.get(K_INSTALL_1) && (installEvt || isIOS);
     if (!canShow) { bar.hidden = true; bar.innerHTML = ''; return; }
     if (!bar.hidden) return;
     bar.hidden = false;
@@ -1883,7 +1888,57 @@
     });
     $('installX').addEventListener('click', function () { store.set(K_INSTALL, { at: Date.now() }); renderInstall(); });
   }
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; renderInstall(); });
-  window.addEventListener('appinstalled', function () { installEvt = null; standalone = true; renderInstall(); });
-  window.addEventListener('kairo:ready', function () { setTimeout(function () { appReady = true; renderInstall(); }, 8000); });
+
+  /* Primera visita: ventana que invita a instalar la app (una sola vez por dispositivo).
+     Android/Chrome: botón que abre la instalación del sistema. iPhone: los pasos de Safari
+     (Apple no deja instalar con un botón). Espera a que el cliente no esté pagando, con el
+     carrito abierto, viendo otra ventana o el letrero de la gran apertura. */
+  var firstReady = false, installPopT = null;
+  var inApp = /Instagram|FBAN|FBAV|FB_IAB|Line\/|TikTok|musical_ly/i.test(navigator.userAgent); // navegadores de redes: no dejan instalar
+  function installPopBusy() {
+    var h = document.documentElement.classList;
+    return stack.length || isPaying || !$('popx').hidden || h.contains('k-loading') || h.contains('ap-on') ||
+      document.visibilityState !== 'visible' || (S.order && S.order.step === 'pago');
+  }
+  function maybeInstallPopup() {
+    clearTimeout(installPopT);
+    if (!firstReady || standalone || inApp || store.get(K_INSTALL_1) || !(installEvt || isIOS)) return;
+    if (installPopBusy()) { installPopT = setTimeout(maybeInstallPopup, 3000); return; }
+    store.set(K_INSTALL_1, { at: Date.now() });
+    openInstallPopup();
+  }
+  var SHARE_ICO = '<svg class="popx__ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  function openInstallPopup() {
+    var ios = !installEvt && isIOS;
+    $('popxCard').innerHTML = '<button type="button" class="popx__x" data-popx-close aria-label="Cerrar"><svg aria-hidden="true"><use href="#i-close"/></svg></button>' +
+      '<div class="popx__pic popx__pic--app" aria-hidden="true"><img src="/img/pc-icon-192.png" alt="" width="96" height="96"></div>' +
+      '<div class="popx__body"><span class="popx__kick">📲 App gratis</span>' +
+      '<h2 id="popxT">Instala Punto Club en tu celular</h2>' +
+      '<p>Ábrela con un toque desde tu pantalla de inicio. Ocupa muy poco espacio y no tienes que buscarla en la tienda de apps.</p>' +
+      '<ul class="popx__list"><li>Sigue tus pedidos paso a paso</li><li>Recibe avisos cuando tu pedido avance</li><li>Entra más rápido a ver lo nuevo</li></ul>' +
+      (ios
+        ? '<ol class="popx__steps"><li>Toca <b>Compartir</b> ' + SHARE_ICO + ' en la barra del navegador.</li><li>Elige <b>Agregar a inicio</b> y luego <b>Agregar</b>.</li></ol>' +
+          '<button type="button" class="btn btn-lime btn-block" data-popx-close>Entendido</button>'
+        : '<button type="button" class="btn btn-lime btn-block" data-install-go>Instalar app</button>' +
+          '<button type="button" class="link-btn popx__later" data-popx-close>Ahora no</button>') +
+      '</div>';
+    // Cerrarla de cualquier forma cuenta como "ahora no": la barrita no insiste en 30 días
+    closePopup.onClose = function () { store.set(K_INSTALL, { at: Date.now() }); renderInstall(); };
+    showPopx();
+  }
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('[data-install-go]')) return;
+    var ev = installEvt; installEvt = null;
+    closePopup.onClose = null; closePopup();
+    if (!ev) return;
+    ev.prompt();
+    ev.userChoice.then(function (c) { if (c.outcome !== 'accepted') store.set(K_INSTALL, { at: Date.now() }); renderInstall(); }).catch(function () { });
+  });
+
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); installEvt = e; maybeInstallPopup(); renderInstall(); });
+  window.addEventListener('appinstalled', function () { installEvt = null; standalone = true; store.set(K_INSTALL_1, { at: Date.now() }); renderInstall(); });
+  window.addEventListener('kairo:ready', function () {
+    setTimeout(function () { firstReady = true; maybeInstallPopup(); }, 4000);
+    setTimeout(function () { appReady = true; renderInstall(); }, 8000);
+  });
 })();
