@@ -10,6 +10,7 @@ const { loadEnvio, departamento } = require('../lib/envios');
 const { makeOrderNumber, clienteHash } = require('../lib/pedidos');
 const { sendWhatsApp, adminWhatsApp } = require('../lib/whatsapp');
 const { notifyAdmins } = require('../lib/push');
+const { limitar, demasiados } = require('../lib/limite');
 
 /* Por ahora Punto Club solo hace envíos nacionales por transportadora y solo recibe
    pagos por transferencia o QR (a Nequi o llave Bre-B). Wompi queda en pausa: su código
@@ -78,6 +79,9 @@ module.exports = async (req, res) => {
   if (customer.direccion.length < 5) return err(res, 'Escribe la dirección de entrega', 400);
   if (customer.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.correo)) return err(res, 'El correo no es válido', 400);
   if (!customer.pago) return err(res, 'Por ahora solo recibimos pagos por transferencia o QR (Nequi o Bre-B). Recarga la página.', 400);
+
+  /* Freno contra pedidos falsos en serie (scripts o la consola del navegador) */
+  if (await limitar(supabase, req, 'pedido', 8, 60)) return demasiados(res, 60, 'Has enviado muchos pedidos seguidos. Si necesitas ayuda, escríbenos por WhatsApp.');
 
   /* 3. Precios reales */
   const r = await priceCart(supabase, items, coupon);

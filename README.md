@@ -39,6 +39,13 @@ Tienda en HTML/CSS/JS, funciones serverless en `api/` (Vercel) y base de datos e
 - **Aviso de pedido nuevo para la tienda**: en **Panel → Resumen** toca **📲 Activar avisos en este celular** (en cada celular o computador donde quieras enterarte). Cada pedido nuevo llega como notificación del sistema, con sonido y vibración, aunque el panel esté cerrado o la pantalla bloqueada. Con el panel abierto, además suena el “ding-dong” cada 5 segundos hasta que toques la pantalla. Si falta algo por configurar, el Resumen te lo dice.
 - **Para activarlo**: ejecuta `lib/migracion-avisos-2026-11.sql` en Supabase y pon en Vercel (Settings → Environment Variables) las variables `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` que quedaron en tu `.env`. Luego vuelve a publicar. Nunca subas la llave privada a GitHub.
 
+### Pedidos más ordenados y seguridad (14 de noviembre de 2026)
+- **Pedidos en el panel**: cada pedido es una fila (número, hace cuánto, cliente, ciudad, pares, estado, total) que se abre con un toque; los que esperan pago llegan abiertos. Adentro: **Datos de envío** (destinatario, cédula, celular, dirección, ciudad, departamento, correo, notas) cada uno con botón de copiar, y **“Copiar para la guía”** que copia todo listo para la transportadora; **Productos** con foto, talla, color y cantidad; y **Seguimiento**. La recarga automática ya no borra lo que estés escribiendo en la guía o el mensaje.
+- **Límite de intentos** (tabla `intentos`, ejecuta `lib/migracion-seguridad-2026-11.sql`): panel 5 contraseñas erradas por conexión → 15 min bloqueada (y pausa general con 60 errores en una hora); pedidos 8 por hora; 10 cupones inexistentes cada 30 min; PQR 5 por hora. Solo se guarda una huella de la IP, nunca la IP.
+- **Aviso en el Resumen del panel** si alguien intentó adivinar la contraseña en las últimas 24 h.
+- **Política de seguridad (CSP) sin `unsafe-inline` en scripts**: los scripts que estaban dentro del HTML pasaron a `js/arranque.js`, `js/app-inert.js`, `js/pqr.js`, `js/recibo.js` y `js/seguimiento.js`. Un código insertado en la página no se ejecuta. No agregues `<script>` ni `onclick="…"` dentro del HTML: ponlo en un archivo `.js`.
+- Las respuestas del panel (datos personales) no se guardan en caché.
+
 ### Tallas por color (14 de noviembre de 2026)
 - En el panel, cada color del producto tiene **sus propias tallas** (“Colores y tallas”). Las tallas del producto se calculan solas: son todas las que hay en algún color.
 - En la tienda el cliente elige primero el color; las tallas que no hay en ese color salen tachadas. Si cambia a un color sin la talla elegida, se le avisa.

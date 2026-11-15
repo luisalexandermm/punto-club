@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Punto Club — Tenis, sandalias y chanclas con envío a toda Colombia</title>
+<title>Punto Club — Tenis</title>
 <meta name="description" content="Punto Club: tenis, sandalias, chanclas y botas para hombre y mujer. Envíos a toda Colombia. Paga por transferencia o QR a Nequi o Bre-B y sigue tu pedido.">
 <meta name="theme-color" content="#0e0e0e">
 <meta name="color-scheme" content="only light">
@@ -17,18 +17,7 @@
 <link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
 <link rel="stylesheet" href="css/store.css?v=25">
-<script>
-  /* La pantalla de carga se muestra en cada apertura (web y PWA).
-     Si /js/loader.js no llega a cargar, este respaldo la quita a los 6 s. */
-  document.documentElement.classList.add('k-loading');
-  setTimeout(function () {
-    if (window.KairoLoader) return;
-    var l = document.getElementById('kLoader'); if (l) l.remove();
-    document.documentElement.classList.remove('k-loading');
-    var a = document.getElementById('app'); if (a) a.removeAttribute('inert');
-    window.dispatchEvent(new Event('kairo:ready'));
-  }, 6000);
-</script>
+<script src="js/arranque.js"></script>
 <noscript><style>.k-loader{display:none!important}html.k-loading body{overflow:auto}</style></noscript>
 <script src="js/negocio.js"></script>
 </head>
@@ -111,21 +100,21 @@
 </defs></svg>
 
 <div id="app">
-<script>document.getElementById('app').setAttribute('inert', '');</script>
+<script src="js/app-inert.js"></script>
 <a class="skip-link" href="#catalogo">Saltar al catálogo</a>
 
 <aside class="topbar" id="topbar" aria-label="Aviso de la tienda" hidden><div class="wrap" id="topbarIn"></div></aside>
 
 <header class="hdr" id="hdr">
   <div class="wrap">
-    <a class="brand" href="#inicio" aria-label="Punto Club, ir al inicio"><img src="img/punto-club-negro.png" alt="" width="179" height="38" onerror="this.parentNode.classList.add('brand--txt')"><span class="brand__txt" aria-hidden="true">PUNTO CLUB<small>SNEAKERS</small></span></a>
+    <a class="brand" href="#inicio" aria-label="Punto Club, ir al inicio"><img src="img/punto-club-negro.png" alt="" width="179" height="38"><span class="brand__txt" aria-hidden="true">PUNTO CLUB<small>SNEAKERS</small></span></a>
     <nav aria-label="Principal">
       <button type="button" data-goto-gender="Hombre">Hombre</button>
       <button type="button" data-goto-gender="Mujer">Mujer</button>
       <a href="#catalogo">Catálogo</a>
       <button type="button" data-open-orders>Mis pedidos</button>
     </nav>
-    <form class="search" role="search" id="searchForm" onsubmit="return false">
+    <form class="search" role="search" id="searchForm">
       <label for="q"><svg aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only">Buscar por marca, modelo o tipo</span>
         <input id="q" type="search" placeholder="Busca Nike, sandalias, Samba…" autocomplete="off" enterkeyhint="search">
         <button type="button" class="clear" id="qClear" hidden>Borrar</button>

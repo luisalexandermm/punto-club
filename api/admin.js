@@ -139,6 +139,7 @@ function cleanRow(body, cfg, isNew) {
 /* ------------------------------------------------------------------ */
 module.exports = async (req, res) => {
   allowCors(res);
+  res.setHeader('Cache-Control', 'no-store'); // pedidos con datos personales: nunca en caché
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (!checkToken(req.headers['x-admin-token'])) return err(res, 'Sesión vencida. Vuelve a entrar.', 401);
 
@@ -147,6 +148,21 @@ module.exports = async (req, res) => {
   const method = req.method;
   const body = req.body || {};
   const nowIso = () => new Date().toISOString();
+
+  /* -------- SEGURIDAD: intentos fallidos de entrar al panel -------- */
+  if (section === 'seguridad' && method === 'GET') {
+    const desde = new Date(Date.now() - 864e5).toISOString();
+    const [fallos, oks] = await Promise.all([
+      supabase.from('intentos').select('quien,at').eq('accion', 'login-fallo').gte('at', desde).order('at', { ascending: false }).limit(1000),
+      supabase.from('intentos').select('at').eq('accion', 'login-ok').order('at', { ascending: false }).limit(2)
+    ]);
+    if (fallos.error) return ok(res, { sinTabla: /intentos/.test(fallos.error.message), fallos24h: 0 });
+    const f = fallos.data || [];
+    return ok(res, {
+      fallos24h: f.length, conexiones: new Set(f.map(x => x.quien)).size, ultimoFallo: f[0] ? f[0].at : null,
+      ingresoAnterior: oks.data && oks.data[1] ? oks.data[1].at : null
+    });
+  }
 
   /* -------- RESUMEN -------- */
   if (section === 'stats' && method === 'GET') {

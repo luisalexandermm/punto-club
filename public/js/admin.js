@@ -59,7 +59,19 @@
       $('loginErr').textContent = err instanceof TypeError ? 'No se pudo conectar con el servidor.' : err.message;
     } finally { $('loginBtn').disabled = false; $('loginBtn').textContent = 'Entrar'; }
   });
-  function enter() { $('loginScreen').style.display = 'none'; $('app').classList.add('on'); loadAll(); loadPushStatus(); $('main').focus(); }
+  function enter() { $('loginScreen').style.display = 'none'; $('app').classList.add('on'); loadAll(); loadPushStatus(); loadSeguridad(); $('main').focus(); }
+  /* Aviso si alguien intentó adivinar la contraseña del panel (últimas 24 h) */
+  async function loadSeguridad() {
+    var box = $('secAlert'); if (!box) return;
+    try {
+      var s = await api('/admin/seguridad');
+      if (s.sinTabla) { box.innerHTML = '<div class="sec-alert"><div><b>Activa la protección contra intentos de ingreso</b>Ejecuta <code>lib/migracion-seguridad-2026-11.sql</code> en Supabase → SQL Editor. Mientras tanto, la protección funciona solo de forma parcial.</div></div>'; return; }
+      if (!s.fallos24h) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="sec-alert"><div><b>' + s.fallos24h + (s.fallos24h === 1 ? ' intento fallido' : ' intentos fallidos') + ' de entrar al panel en las últimas 24 horas</b>' +
+        'Desde ' + s.conexiones + (s.conexiones === 1 ? ' conexión' : ' conexiones distintas') + ', el último ' + hace(s.ultimoFallo) + '. Cada conexión queda bloqueada 15 minutos después de 5 errores. ' +
+        'Si no fuiste tú, cambia la contraseña en Ajustes y usa una larga (12 caracteres o más).' + (s.ingresoAnterior ? ' Tu ingreso anterior fue el ' + esc(fdate(s.ingresoAnterior)) + '.' : '') + '</div></div>';
+    } catch (e) { box.innerHTML = ''; }
+  }
   function logout() {
     TOKEN = null; try { sessionStorage.removeItem('kairo_token'); } catch (e) { }
     $('app').classList.remove('on'); $('loginScreen').style.display = 'flex'; $('passInput').value = ''; $('passInput').focus();
@@ -113,7 +125,8 @@
      solo se revisan los pedidos para sonar la alarma sin tocar lo que estés editando. */
   setInterval(function () {
     if (!TOKEN) return;
-    if (document.visibilityState === 'visible' && !document.querySelector('.drawer.on')) loadAll();
+    var editando = document.querySelector('#orderList [data-dirty]') || (document.activeElement && document.activeElement.closest && document.activeElement.closest('#orderList form'));
+    if (document.visibilityState === 'visible' && !document.querySelector('.drawer.on') && !editando) loadAll();
     else api('/admin/orders').then(notifyNewOrders, function () { });
   }, 20000);
   function notifyNewOrders(list) {
@@ -427,6 +440,17 @@
 
   /* ---------------- pedidos ---------------- */
   var ordFilter = 'activos';
+  var ordOpen = {}; // pedidos que abriste o cerraste (se respeta al recargar)
+  var ICON_COPY = '<svg class="ico-copy" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+  function hace(d) {
+    if (!d) return '';
+    var m = Math.round((Date.now() - new Date(d).getTime()) / 60000);
+    if (m < 1) return 'ahora';
+    if (m < 60) return 'hace ' + m + ' min';
+    var h = Math.round(m / 60); if (h < 24) return 'hace ' + h + ' h';
+    var dd = Math.round(h / 24); if (dd < 7) return 'hace ' + dd + (dd === 1 ? ' día' : ' días');
+    return fdate(d, false);
+  }
   var ORD_TABS = [['activos', 'Activos'], ['pago', 'Por confirmar pago'], ['despachar', 'Por preparar'], ['Enviado', 'Enviados'], ['Entregado', 'Entregados'], ['Cancelado', 'Cancelados'], ['todos', 'Todos']];
   function ordMatch(o) {
     if (ordFilter === 'todos') return true;
@@ -475,14 +499,24 @@
     $('orderList').innerHTML = list.map(function (o) {
       var c = o.customer || {}, pr = o.pricing || {}, t = o.tracking || {}, tel = String(c.telefono || '');
       var steps = stepsOf(o);
-      var items = (o.items || []).map(function (i) { return '<li>' + esc(i.brand + ' ' + i.name) + ' — Talla ' + esc(i.size) + (i.color ? ' — ' + esc(i.color) : '') + ' × ' + esc(i.qty) + ' — ' + money(i.price * i.qty) + ' <small>(sin caja)</small></li>'; }).join('');
+      var pares = (o.items || []).reduce(function (s, i) { return s + (Number(i.qty) || 1); }, 0);
+      // Productos con foto (la del color elegido si existe)
+      var items = (o.items || []).map(function (i) {
+        var p = D.products.find(function (x) { return x.id === i.id; }) || {};
+        var col = (p.colors || []).find(function (x) { return x.n === i.color; }) || {};
+        var thumb = art({ image: col.image || i.image || p.image, shape: p.shape, shoeColor: col.h || p.shoeColor, category: p.category });
+        var nombre = String(i.name || '').toLowerCase().indexOf(String(i.brand || '').toLowerCase()) === 0 ? i.name : i.brand + ' ' + i.name;
+        return '<li><span class="oitem__img">' + thumb + '</span><span class="oitem__txt"><b>' + esc(nombre) + '</b>' +
+          '<span class="oitem__tags"><span>Talla ' + esc(i.size) + '</span>' + (i.color ? '<span>' + esc(i.color) + '</span>' : '') + '<span>× ' + esc(i.qty) + '</span></span></span>' +
+          '<b class="oitem__price">' + money(i.price * i.qty) + '</b></li>';
+      }).join('');
       var lines = '';
       if (pr.subtotal != null) {
         lines = '<div class="money-lines">' +
           (pr.promoSavings ? '<div><span>Ahorro por promociones</span><span>-' + money(pr.promoSavings) + '</span></div>' : '') +
           (pr.coupon && pr.coupon.discount ? '<div><span>Cupón ' + esc(pr.coupon.code) + '</span><span>-' + money(pr.coupon.discount) + '</span></div>' : '') +
           '<div><span>' + (c.entrega === 'Recoger' ? 'Recoge en la tienda' : c.entrega === 'Domicilio' ? 'Domicilio' + (c.barrio ? ' (' + esc(c.barrio) + ')' : '') : c.entrega === 'Nacional' ? 'Envío nacional' : 'Envío') + '</span><span>' + (pr.envio ? money(pr.envio) : 'Gratis') + '</span></div>' +
-          '<div><b>Total</b><b>' + money(pr.totalConEnvio != null ? pr.totalConEnvio : o.total) + '</b></div>' +
+          '<div class="money-lines__total"><b>Total</b><b>' + money(pr.totalConEnvio != null ? pr.totalConEnvio : o.total) + '</b></div>' +
           (c.pago === 'En tienda' ? '<div><span>Cobrar al recoger</span><span>' + money(pr.saldoContraentrega) + '</span></div>' :
           c.pago === 'Contraentrega' ? '<div><span>Domicilio por transferencia</span><span>' + money(pr.pagarAhora) + '</span></div><div><span>Cobrar al entregar</span><span>' + money(pr.saldoContraentrega) + '</span></div>' : '<div><span>' + (c.pago === 'Wompi' ? 'Pago en línea (Wompi)' : 'Debe llegar a tu cuenta') + '</span><span>' + money(pr.pagarAhora) + '</span></div>') +
           '</div>';
@@ -497,13 +531,52 @@
         : c.entrega === 'Nacional' ? waEstado(o, nom)
         : null;
       var isLocal = c.entrega === 'Recoger' || c.entrega === 'Domicilio';
-      return '<article class="order-card' + (o.status === 'Recibido' ? ' is-new' : '') + '" aria-labelledby="o-' + esc(o.id) + '">' +
-        '<div class="order-card__top"><div><h2 class="order-no" id="o-' + esc(o.id) + '">' + esc(o.id) + '</h2><small>' + fdate(o.created_at) + '</small></div><span class="big-price">' + money(o.total) + '</span></div>' +
-        '<div class="order-meta">' + statusPill(o) + entregaPill(c) + '<span class="pill off">' + esc(PAGO_TXT[c.pago] || c.pago || 'Sin método') + '</span>' + (pr.coupon ? '<span class="pill off">Cupón ' + esc(pr.coupon.code) + '</span>' : '') + '<span class="pill warn">Sin caja</span></div>' +
+      // Un dato con botón de copiar
+      var dato = function (label, val, opts) {
+        opts = opts || {};
+        if (!val) return opts.siempre ? '<div class="odato' + (opts.full ? ' full' : '') + '"><dt>' + label + '</dt><dd class="odato__vacio">No lo escribió</dd></div>' : '';
+        var v = opts.html || esc(val);
+        return '<div class="odato' + (opts.full ? ' full' : '') + (opts.cls ? ' ' + opts.cls : '') + '"><dt>' + label + '</dt><dd><span>' + v + '</span>' +
+          (opts.nocopy ? '' : '<button type="button" class="ocopy" data-copy="' + esc(val) + '" aria-label="Copiar ' + esc(label.toLowerCase()) + '" title="Copiar">' + ICON_COPY + '</button>') + '</dd></div>';
+      };
+      var dir = [c.direccion, c.barrio ? 'barrio ' + c.barrio : ''].filter(Boolean).join(', ');
+      var envio = c.entrega === 'Recoger'
+        ? '<p class="osec__nota"><b>Pasa a recoger a la tienda.</b></p>'
+        : '<dl class="odatos">' +
+          dato('Destinatario', c.nombre, { full: true, cls: 'odato--big' }) +
+          dato('Cédula', c.cedula, { siempre: c.entrega === 'Nacional' }) +
+          dato('Celular', tel, { html: tel ? '<a href="tel:+57' + esc(tel.slice(-10)) + '">' + esc(tel.replace(/^(\d{3})(\d{3})(\d{4})$/, '$1 $2 $3')) + '</a>' : '' }) +
+          dato('Dirección', dir, { full: true, cls: 'odato--big' }) +
+          dato('Ciudad', c.ciudad) +
+          dato('Departamento', c.entrega === 'Nacional' ? c.departamento : '') +
+          dato('Correo', c.correo, { full: true }) +
+          (c.notas ? '<div class="odato full odato--nota"><dt>Notas del cliente</dt><dd>' + esc(c.notas) + '</dd></div>' : '') +
+          '</dl>';
+      var abierto = ordOpen.hasOwnProperty(o.id) ? ordOpen[o.id] : o.status === 'Recibido';
+      var lugar = [c.ciudad, c.entrega === 'Nacional' ? c.departamento : ''].filter(Boolean).join(', ') || (ENTREGA_TXT[c.entrega] || '');
+      return '<article class="order-card ocard' + (o.status === 'Recibido' ? ' is-new' : '') + '" aria-labelledby="o-' + esc(o.id) + '">' +
+        '<details class="ocard__d" data-oid="' + esc(o.id) + '"' + (abierto ? ' open' : '') + '>' +
+        '<summary class="ocard__sum">' +
+          '<span class="ocard__id"><b class="order-no" id="o-' + esc(o.id) + '">' + esc(o.id) + '</b><small title="' + esc(fdate(o.created_at)) + '">' + esc(hace(o.created_at)) + '</small></span>' +
+          '<span class="ocard__who"><b>' + esc(c.nombre || 'Sin nombre') + '</b><small>' + esc(lugar) + ' · ' + pares + (pares === 1 ? ' par' : ' pares') + '</small></span>' +
+          '<span class="ocard__right">' + statusPill(o) + '<b class="big-price">' + money(o.total) + '</b><span class="ocard__chev" aria-hidden="true"></span></span>' +
+        '</summary>' +
+        '<div class="ocard__body">' +
         (c.wompi ? '<p class="ref-box"><b>Wompi: ' + esc(WOMPI_TXT[c.wompi.status] || c.wompi.status) + '</b>' + (c.wompi.metodo ? ' · ' + esc(c.wompi.metodo) : '') + ' · ' + money(c.wompi.valor) + ' <small>(' + fdate(c.wompi.at) + ')</small><br>Transacción ' + esc(c.wompi.transactionId) + ' · Ref. ' + esc(c.wompi.reference) + '</p>' : '') +
         (c.pagoReportado ? '<p class="ref-box"><b>El cliente reportó su pago</b>' + (c.pagoReportado.ref ? ' · Referencia: ' + esc(c.pagoReportado.ref) : '') + ' <small>(' + fdate(c.pagoReportado.at) + ')</small><br>Revisa que el pago llegó a tu cuenta (Nequi o Bre-B) antes de confirmar.' + (c.pagoReportado.hasComprobante ? ' <button class="btn btn-line btn-sm" type="button" data-proof="' + esc(o.id) + '">Ver foto del comprobante</button>' : '') + '</p>' : '') +
-        '<p><b>' + esc(c.nombre || 'Sin nombre') + '</b> · ' + esc(tel) + (c.cedula ? ' · CC ' + esc(c.cedula) : '') + (c.correo ? ' · ' + esc(c.correo) : '') + '<br><small>' + (c.entrega === 'Recoger' ? '<b>Pasa a recoger a la tienda</b>' : (c.entrega ? '<b>' + esc(ENTREGA_TXT[c.entrega] || c.entrega) + '</b> · ' : '') + esc([c.direccion, c.barrio ? 'barrio ' + c.barrio : '', c.ciudad, c.entrega === 'Nacional' ? c.departamento : ''].filter(Boolean).join(', '))) + '</small>' + (c.notas ? '<br><small>Notas: ' + esc(c.notas) + '</small>' : '') + '</p>' +
-        '<ul class="order-items">' + items + '</ul>' + lines +
+        '<div class="ocard__grid">' +
+          '<section class="osec osec--envio" aria-label="Datos de envío">' +
+            '<div class="osec__head"><h3>Datos de envío</h3>' + (c.entrega !== 'Recoger' ? '<button type="button" class="btn btn-line btn-sm" data-copyship="' + esc(o.id) + '">' + ICON_COPY + 'Copiar para la guía</button>' : '') + '</div>' +
+            envio +
+          '</section>' +
+          '<section class="osec" aria-label="Productos y pago">' +
+            '<div class="osec__head"><h3>Productos</h3><span class="osec__meta">' + fdate(o.created_at) + '</span></div>' +
+            '<ul class="oitems">' + items + '</ul>' + lines +
+            '<div class="order-meta">' + entregaPill(c) + '<span class="pill off">' + esc(PAGO_TXT[c.pago] || c.pago || 'Sin método') + '</span>' + (pr.coupon ? '<span class="pill off">Cupón ' + esc(pr.coupon.code) + '</span>' : '') + '<span class="pill warn">Sin caja</span></div>' +
+          '</section>' +
+        '</div>' +
+        '<section class="osec osec--track" aria-label="Seguimiento">' +
+        '<div class="osec__head"><h3>Seguimiento</h3></div>' +
         '<ol class="timeline" aria-label="Seguimiento del pedido">' + steps.map(function (s) { return '<li class="' + s.state + '">' + esc(s.label) + (s.at ? '<small>' + fdate(s.at) + '</small>' : '') + '</li>'; }).join('') + '</ol>' +
         '<form class="tl-form" data-track="' + esc(o.id) + '">' +
         '<div class="field"><label for="st-' + esc(o.id) + '">Estado</label><select id="st-' + esc(o.id) + '" name="status">' + STATUSES.map(function (s) { return '<option value="' + s + '"' + (o.status === s ? ' selected' : '') + '>' + esc(stateLabel(s, c)) + '</option>'; }).join('') + '</select></div>' +
@@ -513,12 +586,12 @@
         (isLocal ? '' : '<div class="field full"><label for="lk-' + esc(o.id) + '">Enlace de rastreo (opcional)</label><input id="lk-' + esc(o.id) + '" name="link" type="url" inputmode="url" value="' + esc(t.link || '') + '" maxlength="300" placeholder="https://… (si la transportadora te da un enlace directo)"><small>Si lo dejas vacío, el cliente ve el botón a la página de rastreo de Servientrega o Coordinadora, o solo la guía para copiar.</small></div>') +
         '<div class="field full"><label for="no-' + esc(o.id) + '">Mensaje para el cliente (se ve en su seguimiento)</label><input id="no-' + esc(o.id) + '" name="nota" value="' + esc(t.nota || '') + '" maxlength="400" placeholder="' + (c.entrega === 'Recoger' ? 'Ej.: Ya está listo, pasa después de las 2 p. m.' : 'Ej.: Sale hoy en la tarde') + '"></div>' +
         '<div class="full order-actions"><button class="btn btn-primary btn-sm" type="submit">Guardar seguimiento</button>' +
+        (tel && waQuick ? '<a class="btn btn-wa-quick btn-sm" data-wa-quick="' + esc(o.id) + '" target="_blank" rel="noopener" href="https://wa.me/57' + esc(tel.slice(-10)) + '?text=' + encodeURIComponent(waQuick[1]) + '">' + esc(waQuick[0]) + '</a>' : '') +
+        (tel ? '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="https://wa.me/57' + esc(tel.slice(-10)) + '?text=' + encodeURIComponent(waText) + '">WhatsApp al cliente</a>' : '') +
         '<button class="btn btn-line btn-sm" type="button" data-receipt="' + esc(o.id) + '">Ver recibo</button>' +
         '<button class="btn btn-line btn-sm" type="button" data-copylink="' + esc(o.id) + '">Copiar enlace de seguimiento</button>' +
-        (tel ? '<a class="btn btn-line btn-sm" target="_blank" rel="noopener" href="https://wa.me/57' + esc(tel.slice(-10)) + '?text=' + encodeURIComponent(waText) + '">WhatsApp al cliente</a>' : '') +
-        (tel && waQuick ? '<a class="btn btn-wa-quick btn-sm" data-wa-quick="' + esc(o.id) + '" target="_blank" rel="noopener" href="https://wa.me/57' + esc(tel.slice(-10)) + '?text=' + encodeURIComponent(waQuick[1]) + '">' + esc(waQuick[0]) + '</a>' : '') +
         '<button class="btn-danger" type="button" style="margin-left:auto" data-del="orders" data-id="' + esc(o.id) + '">Eliminar</button></div>' +
-        '</form></article>';
+        '</form></section></div></details></article>';
     }).join('') || '<div class="panel"><p class="empty">No hay pedidos en esta vista.</p></div>';
     if (!$('carriers')) document.body.insertAdjacentHTML('beforeend', '<datalist id="carriers"><option>Servientrega</option><option>Interrapidísimo</option><option>Coordinadora</option><option>Envía</option><option>TCC</option><option>Deprisa</option><option>Entrega local</option></datalist><datalist id="riders"><option>Domiciliario de la tienda</option><option>Mototaxi</option></datalist>');
   }
@@ -546,6 +619,33 @@
         if (wb) { wb.classList.add('pulse'); wb.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(function () { wb.focus({ preventScroll: true }); }, 400); }
       }
     } catch (err) { toast(err.message, 4500); btn.disabled = false; }
+  });
+  /* Abrir/cerrar un pedido se recuerda aunque el panel se recargue solo */
+  $('orderList').addEventListener('toggle', function (e) { var d = e.target; if (d && d.dataset && d.dataset.oid) ordOpen[d.dataset.oid] = d.open; }, true);
+  /* Mientras escribes la guía o el mensaje, la recarga automática no borra lo escrito */
+  $('orderList').addEventListener('input', function (e) { var f = e.target.closest('[data-track]'); if (f) f.dataset.dirty = '1'; });
+  async function copiar(txt, msg) {
+    try { await navigator.clipboard.writeText(txt); toast(msg || 'Copiado'); }
+    catch (x) { prompt('Copia el texto:', txt); }
+  }
+  /* Texto listo para pegar en la guía de la transportadora o en WhatsApp */
+  function textoEnvio(o) {
+    var c = o.customer || {}, n = (o.items || []).reduce(function (s, i) { return s + (Number(i.qty) || 1); }, 0);
+    return [
+      'Destinatario: ' + (c.nombre || ''),
+      c.cedula ? 'Cédula: ' + c.cedula : '',
+      'Celular: ' + (c.telefono || ''),
+      'Dirección: ' + [c.direccion, c.barrio ? 'barrio ' + c.barrio : ''].filter(Boolean).join(', '),
+      'Ciudad: ' + [c.ciudad, c.departamento].filter(Boolean).join(', '),
+      c.notas ? 'Indicaciones: ' + c.notas : '',
+      'Contenido: ' + n + (n === 1 ? ' par' : ' pares') + ' de calzado (sin caja) · Pedido ' + o.id
+    ].filter(Boolean).join('\n');
+  }
+  $('orderList').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-copy]');
+    if (b) { e.preventDefault(); copiar(b.dataset.copy); return; }
+    var s = e.target.closest('[data-copyship]');
+    if (s) { var o = D.orders.find(function (x) { return x.id === s.dataset.copyship; }); if (o) copiar(textoEnvio(o), 'Datos de envío copiados'); }
   });
   $('orderList').addEventListener('click', async function (e) {
     var r = e.target.closest('[data-receipt]'), cl = e.target.closest('[data-copylink]'), proof = e.target.closest('[data-proof]');
@@ -589,8 +689,9 @@
       ((c.pago === 'Contraentrega' || c.pago === 'En tienda') && pr.saldoContraentrega != null ? '<div><b>' + (c.pago === 'En tienda' ? 'Cobrar al recoger' : 'Cobrar al entregar') + '</b>' + money(pr.saldoContraentrega) + '</div>' : '') + '</div>' +
       '<table><thead><tr><th>Producto</th><th class="n">Cant.</th><th class="n">Precio</th><th class="n">Valor</th></tr></thead><tbody>' + rows + '</tbody><tfoot>' + foot + '</tfoot></table>' +
       '<p class="legal">Todos los productos se entregan sin caja. Este recibo no reemplaza la factura electrónica de venta.</p>' +
-      '<button onclick="print()">Imprimir o guardar en PDF</button></body></html>');
+      '<button id="printBtn">Imprimir o guardar en PDF</button></body></html>');
     w.document.close();
+    var pb = w.document.getElementById('printBtn'); if (pb) pb.addEventListener('click', function () { w.print(); });
   }
 
   /* ---------------- productos ---------------- */

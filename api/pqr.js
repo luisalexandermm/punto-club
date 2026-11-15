@@ -3,6 +3,7 @@
    (Ley 1480 de 2011 modificada por la Ley 2439 de 2024, y Ley 1581 de 2012). */
 const supabase = require('../lib/supabase');
 const { ok, err, allowCors, cleanText } = require('../lib/helpers');
+const { limitar, demasiados } = require('../lib/limite');
 
 const TIPOS = ['Petición', 'Queja', 'Reclamo', 'Retracto', 'Reversión del pago', 'Garantía', 'Solicitud sobre mis datos personales'];
 
@@ -10,6 +11,8 @@ module.exports = async (req, res) => {
   allowCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return err(res, 'Método no permitido', 405);
+
+  if (await limitar(supabase, req, 'pqr', 5, 60)) return demasiados(res, 60, 'Ya enviaste varias solicitudes. Espera una hora o escríbenos por WhatsApp.');
 
   const b = req.body || {};
   const tipo = TIPOS.includes(b.tipo) ? b.tipo : null;
