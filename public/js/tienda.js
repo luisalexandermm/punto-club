@@ -809,14 +809,29 @@
       '<div><span>Empaque</span><span>' + (S.empaque === 'Con caja' ? 'Con caja personalizada' : 'Sin caja') + '</span></div>';
     $('coTotals').innerHTML = totalsHTML(c, currentPago());
     $('boxPrice').textContent = '+' + money(CAJA_PRECIO * c.count) + (c.count > 1 ? ' (' + money(CAJA_PRECIO) + ' por par)' : '');
-    $('boxDays').textContent = CAJA_DIAS;
+    var dep = $('fDepto').value;
+    $('noBoxDays').textContent = plazoTxt(dep, 'Sin caja');
+    $('boxDays').textContent = plazoTxt(dep, 'Con caja');
+    $('plazoNota').textContent = dep ? 'Entrega estimada a ' + dep + ': ' + plazoTxt(dep, S.empaque) + ' después de confirmar tu pago.' : 'Elige el departamento para ver el plazo exacto de entrega.';
     document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.checked = r.value === S.empaque; });
     $('payNequiTxt').textContent = 'Desde la app de cualquier banco (Nequi, Bancolombia, Daviplata…). Pagas ' + money(c.totalConEnvio) + ' ahora.';
     $('envioTxt').textContent = c.free ? 'gratis en este pedido' : money(ENVIO);
   }
   document.querySelectorAll('input[name="pago"]').forEach(function (r) { r.addEventListener('change', renderCheckoutSummary); });
   /* Empaque: sin caja (sale apenas se confirma el pago) o con caja personalizada (+valor por par y unos días más) */
-  var CAJA_PRECIO = Number(N.cajaPrecio) || 10000, CAJA_DIAS = N.cajaDiasExtra || '2 a 3 días hábiles';
+  var CAJA_PRECIO = Number(N.cajaPrecio) || 10000;
+  /* Plazos de entrega en días hábiles por departamento (llegan de /api/catalog → settings.plazos).
+     Sin caja sale directo de fábrica; con caja pasa por el taller de Quibdó y tarda más. */
+  var PLAZOS = {};
+  function rango(empaque) {
+    var k = empaque === 'Con caja' ? 'con' : 'sin', a = Infinity, b = 0;
+    Object.keys(PLAZOS).forEach(function (d) { var p = PLAZOS[d][k]; if (p) { a = Math.min(a, p[0]); b = Math.max(b, p[1]); } });
+    return b ? [a, b] : (empaque === 'Con caja' ? [6, 18] : [1, 10]);
+  }
+  function plazoTxt(dep, empaque) {
+    var p = (PLAZOS[dep] || {})[empaque === 'Con caja' ? 'con' : 'sin'] || rango(empaque);
+    return (p[0] === p[1] ? p[0] : p[0] + ' a ' + p[1]) + ' días hábiles';
+  }
   S.empaque = 'Sin caja';
   document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.addEventListener('change', function () { if (r.checked) { S.empaque = r.value; renderCheckoutSummary(); } }); });
   function openCheckout(replace) {
@@ -839,7 +854,7 @@
     $('fDepto').innerHTML = '<option value="">Elige uno</option>' + DEPTOS.map(function (d) { return '<option>' + esc(d) + '</option>'; }).join('');
     if (cur) $('fDepto').value = cur;
   }
-  $('fDepto').addEventListener('change', function () { fieldErr('fDepto', ''); });
+  $('fDepto').addEventListener('change', function () { fieldErr('fDepto', ''); renderCheckoutSummary(); });
   renderDeptos();
 
   function fieldErr(id, msg) { var i = $(id), e = $(id + '-e'); i.setAttribute('aria-invalid', msg ? 'true' : 'false'); if (e) { e.textContent = msg || ''; e.hidden = !msg; } return !msg; }
@@ -1517,7 +1532,7 @@
     if (s === 'proceso' && o.status === 'Recibido' && o.pago === 'En tienda') return 'Separado. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recogerlo en la tienda.';
     if (s === 'proceso' && o.status === 'Recibido' && !o.pagoReportado) return 'Recibimos tu pedido. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recibirlo.';
     if (s === 'proceso' && o.status === 'Recibido') return 'Recibimos tu comprobante. Lo estamos verificando.';
-    if (s === 'proceso' && o.empaque === 'Con caja') return o.status === 'En preparación' ? 'Estamos empacando tu par en su caja personalizada. Te avisamos cuando salga.' : 'Pago confirmado. Ahora personalizamos tu caja: tu pedido sale en ' + CAJA_DIAS + '.';
+    if (s === 'proceso' && o.empaque === 'Con caja') return o.status === 'En preparación' ? 'Estamos empacando tu par en su caja personalizada. Te avisamos cuando salga.' : 'Pago confirmado. Tu par va a nuestro taller en Quibdó, donde personalizamos tu caja.' + (o.plazo ? ' Te llega en unos ' + o.plazo + '.' : '');
     if (s === 'proceso') return o.statusLabel + '. Te avisamos cuando salga.';
     if (s === 'enviado') return o.guia ? 'Guía ' + o.guia + (o.transportadora ? ' · ' + o.transportadora : '') : 'Tu pedido va en camino.';
     if (s === 'entregado') return Array.isArray(o.opinados) && o.opinados.length < o.items.length ? '¡Entregado! Cuéntanos cómo te llegaron ⭐' : '¡Entregado! Esperamos que lo disfrutes.';
@@ -1632,7 +1647,7 @@
       ((o.pago === 'Contraentrega' || o.pago === 'En tienda') && p.saldoContraentrega ? '<div><span>' + (o.pago === 'En tienda' ? 'Pagas al recoger' : 'Pagas al recibir') + '</span><span>' + money(p.saldoContraentrega) + '</span></div>' : '') + '</div>' +
       '<button type="button" class="btn btn-line btn-block" data-rebuy="' + esc(o.numero) + '"><svg aria-hidden="true"><use href="#i-repeat"/></svg>Comprar de nuevo</button></section>' +
       '<section class="od-sec"><h4>Entrega</h4><dl class="od-dl"><div><dt>Recibe</dt><dd>' + esc(o.nombre) + '</dd></div>' +
-      '<div><dt>Empaque</dt><dd>' + (o.empaque === 'Con caja' ? 'Con caja personalizada (sale ' + esc(CAJA_DIAS) + ' después del pago)' : 'Sin caja, protegido en bolsa') + '</dd></div><div><dt>' + (o.entrega === 'Recoger' ? 'Entrega' : 'Dirección') + '</dt><dd>' + (o.entrega === 'Recoger' ? 'Recoge en la tienda' : esc(o.direccion) + ', ' + esc(o.ciudad) + (o.departamento ? ', ' + esc(o.departamento) : '')) + '</dd></div><div><dt>Pago</dt><dd>' + esc(PAGO_TXT[o.pago] || o.pago) + '</dd></div></dl></section>' +
+      '<div><dt>Empaque</dt><dd>' + (o.empaque === 'Con caja' ? 'Con caja personalizada' : 'Sin caja, protegido en bolsa') + '</dd></div>' + (o.plazo ? '<div><dt>Entrega estimada</dt><dd>' + esc(o.plazo) + ' después del pago</dd></div>' : '') + '<div><dt>' + (o.entrega === 'Recoger' ? 'Entrega' : 'Dirección') + '</dt><dd>' + (o.entrega === 'Recoger' ? 'Recoge en la tienda' : esc(o.direccion) + ', ' + esc(o.ciudad) + (o.departamento ? ', ' + esc(o.departamento) : '')) + '</dd></div><div><dt>Pago</dt><dd>' + esc(PAGO_TXT[o.pago] || o.pago) + '</dd></div></dl></section>' +
       '<div class="od-actions"><a class="btn btn-primary" href="' + esc(l.recibo) + '">Ver y descargar recibo</a><a class="btn btn-wa" href="' + esc(wa) + '" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-wa"/></svg>Preguntar por WhatsApp</a></div>';
     if (!keepScroll) { $('ordDetail').scrollTop = 0; $('ordDetail').focus({ preventScroll: true }); }
     if (o.pagoReportado && o.pagoReportado.hasComprobante) loadProof(o);
@@ -1742,6 +1757,7 @@
     if (s.pagos && Array.isArray(s.pagos.cuentas) && s.pagos.cuentas.length) { CUENTAS = s.pagos.cuentas; if (S.order && !$('coStep2').hidden) renderAccounts(); }
     if (s.envio != null && isFinite(s.envio)) { ENVIO = Number(s.envio); renderCart(); if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
     if (Array.isArray(s.departamentos) && s.departamentos.length) { DEPTOS = s.departamentos; renderDeptos(); }
+    if (s.plazos && typeof s.plazos === 'object') { PLAZOS = s.plazos; if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
     // Wompi está en pausa: la tienda solo ofrece transferencia o QR (Nequi / Bre-B)
     if (typeof s.push === 'string' && s.push !== PUSH_KEY) { PUSH_KEY = s.push; renderPushSlots(); syncPush(); }
     var m = encodeURIComponent('Hola Punto Club, quiero hacer una consulta.');

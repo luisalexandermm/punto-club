@@ -153,6 +153,7 @@ module.exports = async (req, res) => {
     nombre: String(o.customer.nombre || '').split(' ')[0],
     entrega: o.customer.entrega || '',
     empaque: o.customer.empaque || 'Sin caja',
+    plazo: o.customer.plazo || '',
     direccion: o.customer.entrega === 'Recoger' ? 'Recoge en la tienda' : maskAddress(o.customer.direccion),
     status, statusLabel: status === 'Cancelado' ? 'Cancelado' : cur.label,
     steps, guia: t.guia, transportadora: t.transportadora, nota: t.nota,

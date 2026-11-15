@@ -110,7 +110,8 @@ Tienda en HTML/CSS/JS, funciones serverless en `api/` (Vercel) y base de datos e
 
 ## Empaque: sin caja o con caja personalizada
 
-- Al pedir, el cliente elige **Sin caja** (gratis, sale apenas se confirma el pago) o **Con caja personalizada** (+$10.000 por par y 2 a 3 días hábiles más).
-- El valor lo cobra el servidor (`lib/empaque.js`); la tienda lo muestra con `cajaPrecio` y `cajaDiasExtra` de `public/js/negocio.js`. Si cambias el precio o los días, cámbialos en los dos.
+- Al pedir, el cliente elige **Sin caja** (gratis, sale apenas se confirma el pago) o **Con caja personalizada** (+$10.000 por par; el par pasa por el taller de Quibdó y tarda más).
+- **Plazos de entrega** (`lib/envios.js`, tabla `TRAMOS`): sin caja sale directo de la fábrica en Cali (1 a 10 días hábiles según el departamento); con caja suma Cali → Quibdó (3 a 5), la personalización (2 a 3) y Quibdó → destino (6 a 18 en total). El checkout muestra el plazo del departamento elegido, y el plazo queda guardado en el pedido (`customer.plazo`) para Mis pedidos, el panel, los avisos y el mensaje de WhatsApp.
+- El valor lo cobra el servidor (`lib/empaque.js`); la tienda lo muestra con `cajaPrecio` de `public/js/negocio.js`. Si cambias el precio, cámbialo en los dos. Si cambias los días, edita `lib/envios.js` y el texto `plazoEntrega` de `negocio.js` (términos).
 - Los pedidos con caja: en el panel llevan 🎁, el estado "En preparación" se llama "Personalizando tu caja" y las notificaciones y mensajes de WhatsApp explican la espera.
 - El aviso "Precio de apertura + Black Friday" sale en cada producto; se cambia o se quita en `avisoPrecio` de `public/js/negocio.js`.

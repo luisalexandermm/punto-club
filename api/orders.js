@@ -6,12 +6,12 @@
 const supabase = require('../lib/supabase');
 const { ok, err, allowCors, cleanText } = require('../lib/helpers');
 const { priceCart } = require('../lib/pricing');
-const { loadEnvio, departamento } = require('../lib/envios');
+const { loadEnvio, departamento, plazoEntrega } = require('../lib/envios');
 const { makeOrderNumber, clienteHash } = require('../lib/pedidos');
 const { sendWhatsApp, adminWhatsApp } = require('../lib/whatsapp');
 const { notifyAdmins } = require('../lib/push');
 const { limitar, demasiados } = require('../lib/limite');
-const { empaqueDe, valorCaja, CAJA_DIAS_EXTRA } = require('../lib/empaque');
+const { empaqueDe, valorCaja } = require('../lib/empaque');
 
 /* Por ahora Punto Club solo hace envíos nacionales por transportadora y solo recibe
    pagos por transferencia o QR (a Nequi o llave Bre-B). Wompi queda en pausa: su código
@@ -39,8 +39,9 @@ function receiptText(numero, items, customer, pricing) {
   const entrega = `Envío a: ${customer.direccion}${customer.barrio ? ', ' + customer.barrio : ''}, ${customer.ciudad}, ${customer.departamento}`;
   return `Punto Club — Pedido ${numero}\n\n${lines}\n\n${extra.join('\n')}\nTotal: ${money(pricing.totalConEnvio)}\n${pago}\n` +
     `${entrega}\n` + (customer.empaque === 'Con caja'
-      ? `Empaque: con caja personalizada. Tu pedido sale ${CAJA_DIAS_EXTRA} después de confirmar el pago, mientras empacamos y personalizamos tu caja.\n\n`
-      : 'Empaque: sin caja (el par va protegido en bolsa).\n\n') +
+      ? `Empaque: con caja personalizada. Tu par pasa por nuestro taller en Quibdó, donde personalizamos tu caja, y de ahí sale hacia ti.\n`
+      : 'Empaque: sin caja (el par va protegido en bolsa).\n') +
+    `Entrega estimada: ${customer.plazo} después de confirmar el pago.\n\n` +
     `Sigue tu pedido en la sección "Mis pedidos" de la tienda (número ${numero}).`;
 }
 
@@ -83,6 +84,8 @@ module.exports = async (req, res) => {
   if (customer.ciudad.length < 3) return err(res, 'Escribe la ciudad o municipio de entrega', 400);
   if (customer.direccion.length < 5) return err(res, 'Escribe la dirección de entrega', 400);
   if (customer.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.correo)) return err(res, 'El correo no es válido', 400);
+  /* Plazo estimado que se le promete al cliente: queda guardado con el pedido */
+  customer.plazo = plazoEntrega(customer.departamento, customer.empaque);
   if (!customer.pago) return err(res, 'Por ahora solo recibimos pagos por transferencia o QR (Nequi o Bre-B). Recarga la página.', 400);
 
   /* Freno contra pedidos falsos en serie (scripts o la consola del navegador) */

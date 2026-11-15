@@ -20,7 +20,7 @@
 <link rel="stylesheet" href="css/apertura.css?v=2">
 <script src="js/arranque.js"></script>
 <noscript><style>.k-loader{display:none!important}html.k-loading body{overflow:auto}</style></noscript>
-<script src="js/negocio.js?v=2"></script>
+<script src="js/negocio.js?v=3"></script>
 </head>
 <body>
 
@@ -328,9 +328,10 @@
       <fieldset class="field">
         <legend>Empaque</legend>
         <div class="pay" id="boxOpts">
-          <label><input type="radio" name="empaque" value="Sin caja" checked><b>Sin caja · gratis</b><small>El par va protegido en bolsa. Sale apenas confirmamos tu pago.</small></label>
-          <label><input type="radio" name="empaque" value="Con caja"><b>Con caja personalizada <span id="boxPrice">+$10.000</span></b><small>Empacamos tu par en una caja personalizada. Tu pedido sale <span id="boxDays">2 a 3 días hábiles</span> más tarde, mientras la preparamos.</small></label>
+          <label><input type="radio" name="empaque" value="Sin caja" checked><b>Sin caja · gratis</b><small>El par va protegido en bolsa y sale apenas confirmamos tu pago. Llega en <span id="noBoxDays">1 a 10 días hábiles</span>.</small></label>
+          <label><input type="radio" name="empaque" value="Con caja"><b>Con caja personalizada <span id="boxPrice">+$10.000</span></b><small>Tu par pasa por nuestro taller en Quibdó, donde lo empacamos en una caja personalizada. Llega en <span id="boxDays">6 a 18 días hábiles</span>.</small></label>
         </div>
+        <p class="hint" id="plazoNota" aria-live="polite">Elige el departamento para ver el plazo exacto de entrega.</p>
       </fieldset>
       <fieldset class="field">
         <legend>Forma de pago</legend>
@@ -437,7 +438,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/apertura.js?v=2"></script>
-<script src="js/tienda.js?v=31"></script>
+<script src="js/tienda.js?v=32"></script>
 <script src="js/pwa.js"></script>
 </body>
 </html>

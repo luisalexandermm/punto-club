@@ -416,7 +416,6 @@
   $('salesChart').addEventListener('focusout', hideTip);
 
   var WOMPI_TXT = { APPROVED: 'pago aprobado', DECLINED: 'pago rechazado', VOIDED: 'pago anulado', ERROR: 'error en el pago', PENDING: 'pago en proceso', REVISAR: 'aprobado con valor distinto, revisar en Wompi' };
-  var CAJA_DIAS = (window.NEGOCIO && NEGOCIO.cajaDiasExtra) || '2 a 3 días hábiles';
   var ENTREGA_TXT = { Recoger: 'Recoge en la tienda', Domicilio: 'Domicilio', Local: 'Local · Quibdó', Nacional: 'Envío nacional' };
   var PAGO_TXT = { Wompi: 'En línea (Wompi)', Nequi: 'Transferencia o QR', Contraentrega: 'Contraentrega', 'En tienda': 'Paga al recoger' };
   /* Nombre de cada estado según cómo se entrega y se paga (el valor guardado no cambia) */
@@ -483,7 +482,7 @@
     var hola = 'Hola ' + (nom || '') + ', ';
     switch (o.status) {
       case 'Recibido': return ['Avisar: recibimos el pedido', hola + 'recibimos tu pedido ' + o.id + ' en Punto Club. Para confirmarlo paga ' + money(pr.pagarAhora || o.total) + ' por QR o transferencia y envíanos el comprobante. Sigue tu pedido aquí: ' + link];
-      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Ahora empacamos tu par y personalizamos tu caja 🎁: tu pedido sale en ' + CAJA_DIAS + ' hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '. Sigue cada paso aquí: ' + link];
+      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Tu par va a nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link];
       case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' se está empacando en su caja personalizada 🎁' : ' se está empacando en bolsa protectora 📦') + '. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
       case 'Enviado': return ['Avisar: enviado con guía', hola + '¡tu pedido ' + o.id + ' ya va en camino a ' + (c.ciudad || 'tu ciudad') + '! 🚚' + (t.guia ? ' Transportadora: ' + (t.transportadora || '—') + '. Número de guía: ' + t.guia + '.' : '') + (t.link ? ' Rastréalo aquí: ' + t.link : '') + ' También lo ves en: ' + link];
       case 'Entregado': return ['Avisar: entregado', hola + 'tu pedido ' + o.id + ' aparece como entregado 🎉. ¡Gracias por comprar en Punto Club! Si algo no está bien, escríbenos por aquí.'];

@@ -4,7 +4,7 @@
 const supabase = require('../lib/supabase');
 const { ok, err, allowCors, checkToken } = require('../lib/helpers');
 const { productPrice, isLive } = require('../lib/pricing');
-const { precioEnvio, DEPARTAMENTOS } = require('../lib/envios');
+const { precioEnvio, DEPARTAMENTOS, tablaPlazos } = require('../lib/envios');
 
 module.exports = async (req, res) => {
   allowCors(res);
@@ -99,6 +99,8 @@ module.exports = async (req, res) => {
       // Envío nacional con tarifa fija; Wompi en pausa (solo transferencia o QR a Nequi / Bre-B)
       envio: precioEnvio(settings.envio_nacional),
       departamentos: DEPARTAMENTOS,
+      // Días hábiles estimados por departamento: sin caja (sale de Cali) y con caja (pasa por Quibdó)
+      plazos: tablaPlazos(),
       wompi: false,
       push: require('../lib/push').pushReady() ? require('../lib/push').PUBLIC_KEY : '',
       pagos: require('../lib/cuentas').sanitize(settings.pagos),

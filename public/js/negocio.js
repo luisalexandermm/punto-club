@@ -28,13 +28,13 @@ window.NEGOCIO = {
   nequiLlave: '@3145312045',
 
   /* Condiciones comerciales que SOLO tú puedes definir */
-  plazoEntrega: '',         // ej. 2 a 5 días hábiles en ciudades principales. Máximo legal si no se informa: 30 días calendario
+  plazoEntrega: 'sin caja, de 1 a 10 días hábiles según el departamento (de 1 a 3 en Cali, Medellín, Bogotá y el Eje Cafetero); con caja personalizada, de 6 a 18 días hábiles, porque el par pasa por nuestro taller en Quibdó. Se cuentan desde que confirmamos el pago, y la tienda te muestra el plazo de tu departamento antes de pedir', // Debe coincidir con la tabla de lib/envios.js. Máximo legal: 30 días calendario
   envioNacional: 25000,     // Valor del envío a toda Colombia. Debe coincidir con Panel → Ajustes → Envío nacional
   plazoCambioTallaDias: '', // Días para cambios de talla por gusto (voluntario). Vacío = [COMPLETAR]
 
   /* Empaque: el cliente elige al pedir. Debe coincidir con lib/empaque.js (el servidor cobra con ese valor) */
   cajaPrecio: 10000,                  // Valor de la caja personalizada, por cada par
-  cajaDiasExtra: '2 a 3 días hábiles', // Tiempo extra para empacar y personalizar la caja
+  // Los días de entrega (sin caja y con caja, por departamento) están en lib/envios.js
 
   /* Aviso de precios en la tienda (vacío = no se muestra) */
   avisoPrecio: 'Precio de apertura + Black Friday',
