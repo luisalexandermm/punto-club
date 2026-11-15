@@ -32,9 +32,16 @@ window.NEGOCIO = {
   envioNacional: 25000,     // Valor del envío a toda Colombia. Debe coincidir con Panel → Ajustes → Envío nacional
   plazoCambioTallaDias: '', // Días para cambios de talla por gusto (voluntario). Vacío = [COMPLETAR]
 
+  /* Empaque: el cliente elige al pedir. Debe coincidir con lib/empaque.js (el servidor cobra con ese valor) */
+  cajaPrecio: 10000,                  // Valor de la caja personalizada, por cada par
+  cajaDiasExtra: '2 a 3 días hábiles', // Tiempo extra para empacar y personalizar la caja
+
+  /* Aviso de precios en la tienda (vacío = no se muestra) */
+  avisoPrecio: 'Precio de apertura + Black Friday',
+
   /* Versión de las políticas. Si cambias los textos legales, cambia esta fecha:
      queda guardada junto a cada pedido como prueba de lo que aceptó el cliente. */
-  versionPoliticas: '2026-11-12'
+  versionPoliticas: '2026-11-14'
 };
 
 (function () {

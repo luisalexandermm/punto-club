@@ -416,6 +416,7 @@
   $('salesChart').addEventListener('focusout', hideTip);
 
   var WOMPI_TXT = { APPROVED: 'pago aprobado', DECLINED: 'pago rechazado', VOIDED: 'pago anulado', ERROR: 'error en el pago', PENDING: 'pago en proceso', REVISAR: 'aprobado con valor distinto, revisar en Wompi' };
+  var CAJA_DIAS = (window.NEGOCIO && NEGOCIO.cajaDiasExtra) || '2 a 3 días hábiles';
   var ENTREGA_TXT = { Recoger: 'Recoge en la tienda', Domicilio: 'Domicilio', Local: 'Local · Quibdó', Nacional: 'Envío nacional' };
   var PAGO_TXT = { Wompi: 'En línea (Wompi)', Nequi: 'Transferencia o QR', Contraentrega: 'Contraentrega', 'En tienda': 'Paga al recoger' };
   /* Nombre de cada estado según cómo se entrega y se paga (el valor guardado no cambia) */
@@ -423,6 +424,7 @@
     c = c || {};
     if (k === 'Pago confirmado' && c.pago === 'Contraentrega') return 'Anticipo confirmado';
     if (k === 'Pago confirmado' && c.pago === 'En tienda') return 'Pedido separado';
+    if (k === 'En preparación' && c.empaque === 'Con caja') return 'Personalizando tu caja';
     if (k === 'Enviado' && c.entrega === 'Recoger') return 'Listo para recoger';
     if (k === 'Enviado' && c.entrega === 'Domicilio') return 'Domicilio en camino';
     if (k === 'Entregado' && c.entrega === 'Recoger') return 'Recogido';
@@ -481,8 +483,8 @@
     var hola = 'Hola ' + (nom || '') + ', ';
     switch (o.status) {
       case 'Recibido': return ['Avisar: recibimos el pedido', hola + 'recibimos tu pedido ' + o.id + ' en Punto Club. Para confirmarlo paga ' + money(pr.pagarAhora || o.total) + ' por QR o transferencia y envíanos el comprobante. Sigue tu pedido aquí: ' + link];
-      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 Ya lo estamos alistando para enviarlo a ' + (c.ciudad || 'tu ciudad') + '. Sigue cada paso aquí: ' + link];
-      case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + ' se está empacando 📦. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
+      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Ahora empacamos tu par y personalizamos tu caja 🎁: tu pedido sale en ' + CAJA_DIAS + ' hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '. Sigue cada paso aquí: ' + link];
+      case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' se está empacando en su caja personalizada 🎁' : ' se está empacando en bolsa protectora 📦') + '. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
       case 'Enviado': return ['Avisar: enviado con guía', hola + '¡tu pedido ' + o.id + ' ya va en camino a ' + (c.ciudad || 'tu ciudad') + '! 🚚' + (t.guia ? ' Transportadora: ' + (t.transportadora || '—') + '. Número de guía: ' + t.guia + '.' : '') + (t.link ? ' Rastréalo aquí: ' + t.link : '') + ' También lo ves en: ' + link];
       case 'Entregado': return ['Avisar: entregado', hola + 'tu pedido ' + o.id + ' aparece como entregado 🎉. ¡Gracias por comprar en Punto Club! Si algo no está bien, escríbenos por aquí.'];
       case 'Cancelado': return ['Avisar: cancelado', hola + 'tu pedido ' + o.id + ' fue cancelado. Si tienes dudas o quieres hacerlo de nuevo, escríbenos por aquí.'];
@@ -521,6 +523,7 @@
           (pr.promoSavings ? '<div><span>Ahorro por promociones</span><span>-' + money(pr.promoSavings) + '</span></div>' : '') +
           (pr.coupon && pr.coupon.discount ? '<div><span>Cupón ' + esc(pr.coupon.code) + '</span><span>-' + money(pr.coupon.discount) + '</span></div>' : '') +
           '<div><span>' + (c.entrega === 'Recoger' ? 'Recoge en la tienda' : c.entrega === 'Domicilio' ? 'Domicilio' + (c.barrio ? ' (' + esc(c.barrio) + ')' : '') : c.entrega === 'Nacional' ? 'Envío nacional' : 'Envío') + '</span><span>' + (pr.envio ? money(pr.envio) : 'Gratis') + '</span></div>' +
+          (pr.caja ? '<div><span>Caja personalizada</span><span>' + money(pr.caja) + '</span></div>' : '') +
           '<div class="money-lines__total"><b>Total</b><b>' + money(pr.totalConEnvio != null ? pr.totalConEnvio : o.total) + '</b></div>' +
           (c.pago === 'En tienda' ? '<div><span>Cobrar al recoger</span><span>' + money(pr.saldoContraentrega) + '</span></div>' :
           c.pago === 'Contraentrega' ? '<div><span>Domicilio por transferencia</span><span>' + money(pr.pagarAhora) + '</span></div><div><span>Cobrar al entregar</span><span>' + money(pr.saldoContraentrega) + '</span></div>' : '<div><span>' + (c.pago === 'Wompi' ? 'Pago en línea (Wompi)' : 'Debe llegar a tu cuenta') + '</span><span>' + money(pr.pagarAhora) + '</span></div>') +
@@ -563,7 +566,7 @@
         '<details class="ocard__d" data-oid="' + esc(o.id) + '"' + (abierto ? ' open' : '') + '>' +
         '<summary class="ocard__sum">' +
           '<span class="ocard__id"><b class="order-no" id="o-' + esc(o.id) + '">' + esc(o.id) + '</b><small title="' + esc(fdate(o.created_at)) + '">' + esc(hace(o.created_at)) + '</small></span>' +
-          '<span class="ocard__who"><b>' + esc(c.nombre || 'Sin nombre') + '</b><small>' + esc(lugar) + ' · ' + pares + (pares === 1 ? ' par' : ' pares') + '</small></span>' +
+          '<span class="ocard__who"><b>' + esc(c.nombre || 'Sin nombre') + '</b><small>' + esc(lugar) + ' · ' + pares + (pares === 1 ? ' par' : ' pares') + (c.empaque === 'Con caja' ? ' · 🎁 con caja' : '') + '</small></span>' +
           '<span class="ocard__right">' + statusPill(o) + '<b class="big-price">' + money(o.total) + '</b><span class="ocard__chev" aria-hidden="true"></span></span>' +
         '</summary>' +
         '<div class="ocard__body">' +
@@ -577,7 +580,7 @@
           '<section class="osec" aria-label="Productos y pago">' +
             '<div class="osec__head"><h3>Productos</h3><span class="osec__meta">' + fdate(o.created_at) + '</span></div>' +
             '<ul class="oitems">' + items + '</ul>' + lines +
-            '<div class="order-meta">' + entregaPill(c) + '<span class="pill off">' + esc(PAGO_TXT[c.pago] || c.pago || 'Sin método') + '</span>' + (pr.coupon ? '<span class="pill off">Cupón ' + esc(pr.coupon.code) + '</span>' : '') + '<span class="pill warn">Sin caja</span></div>' +
+            '<div class="order-meta">' + entregaPill(c) + '<span class="pill off">' + esc(PAGO_TXT[c.pago] || c.pago || 'Sin método') + '</span>' + (pr.coupon ? '<span class="pill off">Cupón ' + esc(pr.coupon.code) + '</span>' : '') + (c.empaque === 'Con caja' ? '<span class="pill lime">🎁 Con caja personalizada</span>' : '<span class="pill warn">Sin caja</span>') + '</div>' +
           '</section>' +
         '</div>' +
         '<section class="osec osec--track" aria-label="Seguimiento">' +
@@ -643,7 +646,7 @@
       'Dirección: ' + [c.direccion, c.barrio ? 'barrio ' + c.barrio : ''].filter(Boolean).join(', '),
       'Ciudad: ' + [c.ciudad, c.departamento].filter(Boolean).join(', '),
       c.notas ? 'Indicaciones: ' + c.notas : '',
-      'Contenido: ' + n + (n === 1 ? ' par' : ' pares') + ' de calzado (sin caja) · Pedido ' + o.id
+      'Contenido: ' + n + (n === 1 ? ' par' : ' pares') + ' de calzado (' + (c.empaque === 'Con caja' ? 'con caja' : 'sin caja') + ') · Pedido ' + o.id
     ].filter(Boolean).join('\n');
   }
   $('orderList').addEventListener('click', function (e) {
@@ -673,11 +676,12 @@
     var w = window.open('', '_blank', 'width=760,height=900');
     if (!w) { toast('Permite las ventanas emergentes para ver el recibo'); return; }
     var biz = function (k) { return esc(N[k] || '[COMPLETAR]'); };
-    var rows = (o.items || []).map(function (i) { return '<tr><td>' + esc(i.brand + ' ' + i.name) + '<small>Talla ' + esc(i.size) + (i.color ? ' · ' + esc(i.color) : '') + ' · Sin caja</small></td><td class="n">' + esc(i.qty) + '</td><td class="n">' + money(i.price) + '</td><td class="n">' + money(i.price * i.qty) + '</td></tr>'; }).join('');
+    var rows = (o.items || []).map(function (i) { return '<tr><td>' + esc(i.brand + ' ' + i.name) + '<small>Talla ' + esc(i.size) + (i.color ? ' · ' + esc(i.color) : '') + ' · ' + (c.empaque === 'Con caja' ? 'Con caja' : 'Sin caja') + '</small></td><td class="n">' + esc(i.qty) + '</td><td class="n">' + money(i.price) + '</td><td class="n">' + money(i.price * i.qty) + '</td></tr>'; }).join('');
     var sub = (o.items || []).reduce(function (s, i) { return s + i.price * i.qty; }, 0);
     var foot = '<tr><td colspan="3">Subtotal</td><td class="n">' + money(sub) + '</td></tr>' +
       (pr.coupon ? '<tr><td colspan="3">Cupón ' + esc(pr.coupon.code) + '</td><td class="n">-' + money(pr.coupon.discount) + '</td></tr>' : '') +
       (pr.envio != null ? '<tr><td colspan="3">' + (c.entrega === 'Recoger' ? 'Recoger en la tienda' : c.entrega === 'Domicilio' ? 'Domicilio' + (c.barrio ? ' (' + esc(c.barrio) + ')' : '') : c.entrega === 'Nacional' ? 'Envío nacional' : 'Envío') + '</td><td class="n">' + (pr.envio ? money(pr.envio) : 'Gratis') + '</td></tr>' : '') +
+      (pr.caja ? '<tr><td colspan="3">Caja personalizada</td><td class="n">' + money(pr.caja) + '</td></tr>' : '') +
       '<tr class="g"><td colspan="3">Total</td><td class="n">' + money(o.total) + '</td></tr>';
     w.document.write('<!doctype html><html lang="es-CO"><head><meta charset="utf-8"><title>Recibo ' + esc(o.id) + '</title><link rel="stylesheet" href="/css/fonts.css"><style>' +
       'body{font-family:Manrope,Arial,sans-serif;color:#0e0e0e;max-width:720px;margin:32px auto;padding:0 24px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #0e0e0e;padding-bottom:14px}' +
@@ -693,7 +697,7 @@
       ((o.tracking || {}).guia ? '<div><b>Guía</b>' + esc(o.tracking.guia) + ' ' + esc(o.tracking.transportadora || '') + '</div>' : '') +
       ((c.pago === 'Contraentrega' || c.pago === 'En tienda') && pr.saldoContraentrega != null ? '<div><b>' + (c.pago === 'En tienda' ? 'Cobrar al recoger' : 'Cobrar al entregar') + '</b>' + money(pr.saldoContraentrega) + '</div>' : '') + '</div>' +
       '<table><thead><tr><th>Producto</th><th class="n">Cant.</th><th class="n">Precio</th><th class="n">Valor</th></tr></thead><tbody>' + rows + '</tbody><tfoot>' + foot + '</tfoot></table>' +
-      '<p class="legal">Todos los productos se entregan sin caja. Este recibo no reemplaza la factura electrónica de venta.</p>' +
+      '<p class="legal">Empaque: ' + (c.empaque === 'Con caja' ? 'con caja personalizada' : 'sin caja') + '. Este recibo no reemplaza la factura electrónica de venta.</p>' +
       '<button id="printBtn">Imprimir o guardar en PDF</button></body></html>');
     w.document.close();
     var pb = w.document.getElementById('printBtn'); if (pb) pb.addEventListener('click', function () { w.print(); });

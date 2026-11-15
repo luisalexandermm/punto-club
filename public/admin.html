@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0e0e0e">
 <link rel="stylesheet" href="/css/fonts.css">
 <link rel="stylesheet" href="/css/admin.css?v=17">
-<script src="/js/negocio.js"></script>
+<script src="/js/negocio.js?v=2"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -250,7 +250,7 @@
     </div>
     <label class="check"><input type="checkbox" id="pActive" checked> Visible en la tienda</label>
     <label class="check"><input type="checkbox" id="pFeatured"> Destacado (aparece en el carrusel del inicio)</label>
-    <p class="help-box">Todos los productos se muestran como <b>“Sin caja”</b> en la tienda, el carrito, el recibo y el mensaje de WhatsApp.</p>
+    <p class="help-box">Al pedir, el cliente elige <b>sin caja</b> o <b>con caja personalizada</b> (valor y días extra en <code>public/js/negocio.js</code> y <code>lib/empaque.js</code>). Los pedidos con caja muestran 🎁 y sus avisos explican la espera.</p>
     <p class="form-msg bad" id="prodErr" role="alert" hidden></p>
   </div>
   <div class="drawer__foot">
@@ -270,6 +270,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/admin.js?v=24"></script>
+<script src="/js/admin.js?v=25"></script>
 </body>
 </html>

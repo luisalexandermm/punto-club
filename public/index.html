@@ -16,11 +16,11 @@
 <meta name="apple-mobile-web-app-title" content="Punto Club">
 <link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/store.css?v=25">
+<link rel="stylesheet" href="css/store.css?v=26">
 <link rel="stylesheet" href="css/apertura.css?v=2">
 <script src="js/arranque.js"></script>
 <noscript><style>.k-loader{display:none!important}html.k-loading body{overflow:auto}</style></noscript>
-<script src="js/negocio.js"></script>
+<script src="js/negocio.js?v=2"></script>
 </head>
 <body>
 
@@ -177,7 +177,7 @@
 
     <section class="sec" id="catalogo" aria-labelledby="h-cat" tabindex="-1">
       <div id="gHead"></div>
-      <div class="sec-head" id="catHead"><div><h2 id="h-cat">Elige tu par</h2><p>Toca un modelo para ver tallas y colores. Todos se entregan sin caja.</p></div></div>
+      <div class="sec-head" id="catHead"><div><h2 id="h-cat">Elige tu par</h2><p>Toca un modelo para ver tallas y colores. <b class="cat-aviso">Precios de apertura + Black Friday.</b></p></div></div>
       <div class="result-bar"><p id="resultCount" role="status" aria-live="polite"></p><button type="button" class="link-btn" id="clearFilters" hidden>Quitar filtros</button></div>
       <div class="grid" id="grid" aria-busy="true"></div>
     </section>
@@ -197,7 +197,7 @@
     <div class="foot-grid">
       <div>
         <img src="img/punto-club-blanco.png" alt="Punto Club" width="179" height="38">
-        <p style="margin:12px 0 10px">Tenis, sandalias, chanclas y botas para hombre y mujer. Enviamos a toda Colombia. Todos los productos se entregan sin caja.</p>
+        <p style="margin:12px 0 10px">Tenis, sandalias, chanclas y botas para hombre y mujer. Enviamos a toda Colombia. Al pedir eliges: sin caja o con caja personalizada.</p>
         <div class="foot-data">
     
           <span>Dirección: <span data-negocio="direccion"></span>, <span data-negocio="ciudad"></span></span>
@@ -266,7 +266,7 @@
         <p class="pd__meta" id="pdMeta"></p>
         <div class="pd__price" id="pdPrice"></div>
         <p class="pd__desc" id="pdDesc"></p>
-        <p class="notice-box"><svg aria-hidden="true"><use href="#i-nobox"/></svg><span><b>Se entrega sin caja.</b> El par llega protegido en bolsa, sin la caja original de la marca.</span></p>
+        <p class="notice-box"><svg aria-hidden="true"><use href="#i-nobox"/></svg><span><b>Tú eliges el empaque al pedir:</b> sin caja (protegido en bolsa) o con caja personalizada por $10.000 más por par.</span></p>
         <div class="opt" id="pdColorLbl">Color <span id="pdColorHint"></span></div>
         <div class="colors" id="pdColors" role="group" aria-labelledby="pdColorLbl"></div>
         <div class="opt" id="pdSizeLbl">Talla <span id="pdSizeHint">Elige una</span></div>
@@ -297,7 +297,7 @@
     <p class="coupon-msg" id="couponMsg" role="status" aria-live="polite"></p>
     <div class="totals" id="cartTotals"></div>
     <button type="button" class="btn btn-primary btn-block" id="toCheckout" disabled>Continuar con la compra</button>
-    <p class="mini-note">Todos los productos se entregan sin caja.</p>
+    <p class="mini-note">En el siguiente paso eliges el empaque: sin caja o con caja personalizada.</p>
   </div>
 </div>
 
@@ -326,6 +326,13 @@
       <div class="field"><label for="fDir">Dirección *</label><input id="fDir" autocomplete="street-address" required maxlength="200" placeholder="Calle, número, casa o apartamento" aria-describedby="fDir-e"><p class="err" id="fDir-e" hidden></p></div>
       <div class="field"><label for="fBarrio">Barrio</label><input id="fBarrio" maxlength="80" aria-describedby="fBarrio-h"><p class="hint" id="fBarrio-h">Opcional. Ayuda a la transportadora a encontrarte.</p></div>
       <fieldset class="field">
+        <legend>Empaque</legend>
+        <div class="pay" id="boxOpts">
+          <label><input type="radio" name="empaque" value="Sin caja" checked><b>Sin caja · gratis</b><small>El par va protegido en bolsa. Sale apenas confirmamos tu pago.</small></label>
+          <label><input type="radio" name="empaque" value="Con caja"><b>Con caja personalizada <span id="boxPrice">+$10.000</span></b><small>Empacamos tu par en una caja personalizada. Tu pedido sale <span id="boxDays">2 a 3 días hábiles</span> más tarde, mientras la preparamos.</small></label>
+        </div>
+      </fieldset>
+      <fieldset class="field">
         <legend>Forma de pago</legend>
         <div class="pay" id="payOpts">
           <label><input type="radio" name="pago" value="Nequi" checked><b>Transferencia o QR a Nequi o Bre-B</b><small id="payNequiTxt">Pagas desde la app de cualquier banco. Pagas todo ahora.</small></label>
@@ -333,7 +340,7 @@
       </fieldset>
       <div class="field"><label for="fNotas">Notas</label><textarea id="fNotas" maxlength="500" placeholder="Punto de referencia, horario en que te encuentran…"></textarea></div>
       <div class="totals" id="coTotals"></div>
-      <label class="consent"><input type="checkbox" id="cTerm" aria-describedby="consent-e"><span>Acepto los <a href="/terminos.html" target="_blank" rel="noopener">términos y condiciones</a> y entiendo que <b>los productos se entregan sin caja</b>. *</span></label>
+      <label class="consent"><input type="checkbox" id="cTerm" aria-describedby="consent-e"><span>Acepto los <a href="/terminos.html" target="_blank" rel="noopener">términos y condiciones</a> y entiendo el <b>empaque que elegí</b> y su tiempo de entrega. *</span></label>
       <label class="consent"><input type="checkbox" id="cDatos" aria-describedby="consent-e"><span>Autorizo el tratamiento de mis datos para gestionar y entregar este pedido, según la <a href="/privacidad.html" target="_blank" rel="noopener">política de datos personales</a>. *</span></label>
       <label class="consent consent--soft"><input type="checkbox" id="cRecordar" checked><span>Recordar mis datos de envío en este celular para la próxima compra.</span></label>
       <p class="err form-err" id="consent-e" hidden></p>
@@ -430,7 +437,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/apertura.js?v=2"></script>
-<script src="js/tienda.js?v=30"></script>
+<script src="js/tienda.js?v=31"></script>
 <script src="js/pwa.js"></script>
 </body>
 </html>

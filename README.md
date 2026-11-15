@@ -107,3 +107,10 @@ Tienda en HTML/CSS/JS, funciones serverless en `api/` (Vercel) y base de datos e
 - Al llegar a cero, la página se recarga sola y aparece la tienda.
 - **Vista previa:** desde el panel, botón "Ver tienda": el administrador ve la tienda completa (con un aviso abajo) para revisarla antes de abrir.
 - Cambiar la hora sin tocar código: variable `APERTURA` en Vercel (p. ej. `2026-11-16T00:00:00-05:00`). Abrir ya: `APERTURA=ya`. Luego vuelve a desplegar.
+
+## Empaque: sin caja o con caja personalizada
+
+- Al pedir, el cliente elige **Sin caja** (gratis, sale apenas se confirma el pago) o **Con caja personalizada** (+$10.000 por par y 2 a 3 días hábiles más).
+- El valor lo cobra el servidor (`lib/empaque.js`); la tienda lo muestra con `cajaPrecio` y `cajaDiasExtra` de `public/js/negocio.js`. Si cambias el precio o los días, cámbialos en los dos.
+- Los pedidos con caja: en el panel llevan 🎁, el estado "En preparación" se llama "Personalizando tu caja" y las notificaciones y mensajes de WhatsApp explican la espera.
+- El aviso "Precio de apertura + Black Friday" sale en cada producto; se cambia o se quita en `avisoPrecio` de `public/js/negocio.js`.

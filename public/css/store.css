@@ -5653,3 +5653,23 @@ html.popx-open body {
   .noti { transition: opacity .2s; }
   .noti__bar { animation: none; }
 }
+
+/* Aviso de precios (apertura + Black Friday) y elección de empaque */
+.price-aviso {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #0e0e0e;
+  color: #c6ff3d;
+  font-size: .7rem;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1.3;
+}
+.price-aviso--pd { margin: 6px 0 0; font-size: .78rem; }
+.cat-aviso { color: var(--ink, #0e0e0e); }
+#boxOpts b span { color: var(--green, #1a7f37); white-space: nowrap; }
+#boxOpts { margin-bottom: 4px; }

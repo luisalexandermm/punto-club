@@ -261,7 +261,7 @@
       '<button type="button" class="card__fav" data-fav="' + esc(p.id) + '" aria-pressed="' + fav + '" aria-label="Guardar ' + esc(p.brand + ' ' + p.name) + ' en favoritos"><svg aria-hidden="true"><use href="#' + (fav ? 'i-heart-on' : 'i-heart') + '"/></svg></button></div>' +
       '<div class="card__body"><span class="card__brand">' + esc(p.brand) + '</span><h3>' + esc(p.name) + '</h3>' +
       '<span class="card__meta">' + esc(p.category) + ' · ' + esc(p.gender) + '</span>' +
-      '<span class="nobox"><svg aria-hidden="true"><use href="#i-nobox"/></svg>Sin caja</span>' +
+      (N.avisoPrecio ? '<span class="price-aviso" title="' + esc(N.avisoPrecio) + '">' + esc(N.avisoPrecio.replace(/^precio de\s+/i, '').replace(/^./, function (x) { return x.toUpperCase(); })) + '</span>' : '') +
       '<div class="card__row"><span class="price">' + (sale ? '<s><span class="sr-only">Antes </span>' + money(p.price) + '</s><span class="sr-only">Ahora </span>' : '') + money(priceOf(p)) + '</span>' +
       '<button type="button" class="plus" data-open="' + esc(p.id) + '" aria-label="Elegir talla de ' + esc(p.brand + ' ' + p.name) + '"><svg aria-hidden="true"><use href="#i-plus"/></svg></button></div></div>' +
       '<button type="button" class="card__open" data-open="' + esc(p.id) + '" tabindex="-1" aria-hidden="true"></button>' +
@@ -377,7 +377,7 @@
     var feats = S.products.filter(function (p) { return p.featured; }).slice(0, 3);
     if (!SLIDES.length) {
       SLIDES.push({ eyebrow: 'Punto Club', title: 'Arma tu estilo.', subtitle: 'Tenis, sandalias y chanclas para hombre y mujer, con envío a toda Colombia.', button: 'Ver catálogo', color: '#0e4d38', product: feats[0] || S.products[0], link: { type: 'ninguno' } });
-      feats.slice(1).forEach(function (p) { SLIDES.push({ eyebrow: p.brand, title: p.name, subtitle: (p.salePrice ? 'Ahora ' + money(p.salePrice) + ' · ' : 'Desde ' + money(p.price) + ' · ') + 'Se entrega sin caja', button: 'Elegir talla', color: p.gender === 'Mujer' ? '#1f8a62' : '#0a2a20', product: p, link: { type: 'producto', value: p.id } }); });
+      feats.slice(1).forEach(function (p) { SLIDES.push({ eyebrow: p.brand, title: p.name, subtitle: (p.salePrice ? 'Ahora ' + money(p.salePrice) + ' · ' : 'Desde ' + money(p.price) + ' · ') + (N.avisoPrecio || 'Envíos a toda Colombia'), button: 'Elegir talla', color: p.gender === 'Mujer' ? '#1f8a62' : '#0a2a20', product: p, link: { type: 'producto', value: p.id } }); });
     }
     car.n = SLIDES.length; car.i = 0;
     $('slides').innerHTML = SLIDES.map(function (s, i) { return slideHTML(s, i, SLIDES.length); }).join('');
@@ -615,7 +615,8 @@
     $('pdMeta').textContent = p.category + ' · ' + p.gender + (p.tag ? ' · ' + p.tag : '');
     var seg2 = S.promos.filter(function (pr) { return pr.kind === 'segunda' && scopeMatch(pr, p); })[0];
     $('pdPrice').innerHTML = '<b>' + money(priceOf(p)) + '</b>' + (sale ? '<s><span class="sr-only">Antes </span>' + money(p.price) + '</s>' : '') + (p.promo ? '<span class="pd__promo">' + esc(p.promo.title) + '</span>' : '') +
-      (seg2 ? '<span class="pd__promo">2.ª unidad -' + seg2.discount + '%</span>' : '');
+      (seg2 ? '<span class="pd__promo">2.ª unidad -' + seg2.discount + '%</span>' : '') +
+      (N.avisoPrecio ? '<span class="price-aviso price-aviso--pd">' + esc(N.avisoPrecio) + '</span>' : '');
     $('pdDesc').textContent = p.desc || '';
     $('pdMedia').style.setProperty('--tint', p.bg || '#e2f0e8');
     $('pdMedia').innerHTML = art(p, '', S.sel.color);
@@ -726,7 +727,10 @@
     // Envío nacional: tarifa fija (se configura en el panel)
     var envio = free ? 0 : ENVIO;
     var total = Math.max(0, sub - disc);
-    return { lines: lines, list: list, sub: sub, save: list - sub, seg: seg, disc: disc, free: free, shipPromo: shipPromo, envio: envio, total: total, totalConEnvio: total + envio, count: lines.reduce(function (s, l) { return s + l.qty; }, 0) };
+    var count = lines.reduce(function (s, l) { return s + l.qty; }, 0);
+    // Caja personalizada: valor por cada par (el servidor cobra el mismo valor)
+    var caja = S.empaque === 'Con caja' ? CAJA_PRECIO * count : 0;
+    return { lines: lines, list: list, sub: sub, save: list - sub, seg: seg, disc: disc, free: free, shipPromo: shipPromo, envio: envio, caja: caja, total: total, totalConEnvio: total + envio + caja, count: count };
   }
   function totalsHTML(c, pago) {
     var h = '<div><span>Productos</span><span>' + money(c.list) + '</span></div>';
@@ -735,6 +739,7 @@
     if (c.disc) h += '<div class="save"><span>Cupón ' + esc(S.coupon.code) + '</span><span>-' + money(c.disc) + '</span></div>';
     var promoTxt = c.shipPromo && !(S.coupon && S.coupon.freeShipping) ? ' (' + esc(c.shipPromo.title) + ')' : '';
     h += '<div><span>Envío nacional' + promoTxt + '</span><span>' + (c.envio ? money(c.envio) : 'Gratis') + '</span></div>';
+    if (c.caja) h += '<div><span>Caja personalizada (' + c.count + (c.count === 1 ? ' par' : ' pares') + ')</span><span>' + money(c.caja) + '</span></div>';
     h += '<div class="grand"><span>Total</span><span>' + money(c.totalConEnvio) + '</span></div>';
     if (pago) h += '<div><span>Pagas ahora por transferencia o QR</span><span>' + money(c.totalConEnvio) + '</span></div>';
     return h;
@@ -743,7 +748,7 @@
     var c = calc();
     $('cartItems').innerHTML = c.lines.length ? c.lines.map(function (l) {
       return '<div class="ci"><div class="ci__thumb" style="--tint:' + esc(l.p.bg || '#e2f0e8') + '">' + art(l.p, '', (l.p.colors || []).find(function (x) { return x.n === l.color; })) + '</div>' +
-        '<div><h3>' + esc(l.p.brand + ' ' + l.p.name) + '</h3><small>Talla ' + esc(l.size) + (l.color ? ' · ' + esc(l.color) : '') + ' · Sin caja</small>' +
+        '<div><h3>' + esc(l.p.brand + ' ' + l.p.name) + '</h3><small>Talla ' + esc(l.size) + (l.color ? ' · ' + esc(l.color) : '') + '</small>' +
         '<div class="qty" role="group" aria-label="Cantidad de ' + esc(l.p.name) + '"><button type="button" data-q="-1" data-k="' + esc(l.key) + '" aria-label="Quitar uno">−</button><span aria-live="polite">' + l.qty + '</span><button type="button" data-q="1" data-k="' + esc(l.key) + '" aria-label="Agregar uno">+</button></div></div>' +
         '<div><div class="ci__price">' + money(l.price * l.qty) + '</div><button type="button" class="ci__rm" data-rm="' + esc(l.key) + '">Quitar<span class="sr-only"> ' + esc(l.p.name) + '</span></button></div></div>';
     }).join('') : '<p class="cart-empty">Tu carrito está vacío.<br>Elige un modelo del catálogo.</p>';
@@ -801,12 +806,19 @@
   function renderCheckoutSummary() {
     var c = calc();
     $('coSummary').innerHTML = c.lines.map(function (l) { return '<div><span>' + esc(l.p.brand + ' ' + l.p.name) + ' · T' + esc(l.size) + (l.color ? ' · ' + esc(l.color) : '') + ' ×' + l.qty + '</span><span>' + money(l.price * l.qty) + '</span></div>'; }).join('') +
-      '<div><span>Empaque</span><span>Sin caja</span></div>';
+      '<div><span>Empaque</span><span>' + (S.empaque === 'Con caja' ? 'Con caja personalizada' : 'Sin caja') + '</span></div>';
     $('coTotals').innerHTML = totalsHTML(c, currentPago());
+    $('boxPrice').textContent = '+' + money(CAJA_PRECIO * c.count) + (c.count > 1 ? ' (' + money(CAJA_PRECIO) + ' por par)' : '');
+    $('boxDays').textContent = CAJA_DIAS;
+    document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.checked = r.value === S.empaque; });
     $('payNequiTxt').textContent = 'Desde la app de cualquier banco (Nequi, Bancolombia, Daviplata…). Pagas ' + money(c.totalConEnvio) + ' ahora.';
     $('envioTxt').textContent = c.free ? 'gratis en este pedido' : money(ENVIO);
   }
   document.querySelectorAll('input[name="pago"]').forEach(function (r) { r.addEventListener('change', renderCheckoutSummary); });
+  /* Empaque: sin caja (sale apenas se confirma el pago) o con caja personalizada (+valor por par y unos días más) */
+  var CAJA_PRECIO = Number(N.cajaPrecio) || 10000, CAJA_DIAS = N.cajaDiasExtra || '2 a 3 días hábiles';
+  S.empaque = 'Sin caja';
+  document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.addEventListener('change', function () { if (r.checked) { S.empaque = r.value; renderCheckoutSummary(); } }); });
   function openCheckout(replace) {
     if (stack.indexOf($('cartSheet')) > -1) { closeLayer($('cartSheet'), false, true); replace = true; }
     if (S.order) { resumeOrder(replace); return; }
@@ -854,7 +866,7 @@
 
     sending = true; $('orderBtn').disabled = true; $('orderBtn').textContent = 'Guardando tu pedido…'; $('orderErr').hidden = true;
     var pago = currentPago();
-    var customer = { nombre: v('fNombre'), telefono: telDigits(v('fTel')), cedula: v('fCed'), correo: v('fCorreo'), direccion: v('fDir'), barrio: v('fBarrio'), ciudad: v('fCiudad'), departamento: v('fDepto'), notas: v('fNotas'), pago: pago, entrega: 'Nacional' };
+    var customer = { nombre: v('fNombre'), telefono: telDigits(v('fTel')), cedula: v('fCed'), correo: v('fCorreo'), direccion: v('fDir'), barrio: v('fBarrio'), ciudad: v('fCiudad'), departamento: v('fDepto'), notas: v('fNotas'), pago: pago, entrega: 'Nacional', empaque: S.empaque };
     try {
       var d = await api('/api/orders', { items: itemsPayload(), coupon: S.coupon ? S.coupon.code : '', customer: customer, cliente: clienteId(), consent: { terminos: true, datos: true, version: N.versionPoliticas || '' } });
       if ($('cRecordar').checked) {
@@ -865,13 +877,13 @@
       rememberOrder(d.numero, customer.telefono.slice(-4));
       S.order = {
         numero: d.numero, ultimos4: customer.telefono.slice(-4), nombre: customer.nombre.split(' ')[0], ciudad: customer.ciudad,
-        pago: d.pago, entrega: customer.entrega, pricing: d.pricing, items: d.items.map(function (i) { return { brand: i.brand, name: i.name, size: i.size, color: i.color, qty: i.qty, price: i.price }; }),
+        pago: d.pago, entrega: customer.entrega, empaque: customer.empaque, pricing: d.pricing, items: d.items.map(function (i) { return { brand: i.brand, name: i.name, size: i.size, color: i.color, qty: i.qty, price: i.price }; }),
         createdAt: d.createdAt, step: 'pago', at: Date.now()
       };
       store.set(K_ORDER, S.order);
       if (d.checkoutUrl) wompiUrl = d.checkoutUrl;
       S.cart = []; S.coupon = null; saveCart(); renderCart(); $('couponIn').value = ''; $('couponMsg').textContent = '';
-      $('orderForm').reset(); renderCheckoutSummary();
+      S.empaque = 'Sin caja'; $('orderForm').reset(); renderCheckoutSummary();
       // Separado (pagar al recoger) o sin nada que pagar ahora: directo a "listo"
       if (!d.pricing.pagarAhora) {
         S.order.step = 'separado'; store.set(K_ORDER, S.order); MP.stale = true;
@@ -1505,6 +1517,7 @@
     if (s === 'proceso' && o.status === 'Recibido' && o.pago === 'En tienda') return 'Separado. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recogerlo en la tienda.';
     if (s === 'proceso' && o.status === 'Recibido' && !o.pagoReportado) return 'Recibimos tu pedido. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recibirlo.';
     if (s === 'proceso' && o.status === 'Recibido') return 'Recibimos tu comprobante. Lo estamos verificando.';
+    if (s === 'proceso' && o.empaque === 'Con caja') return o.status === 'En preparación' ? 'Estamos empacando tu par en su caja personalizada. Te avisamos cuando salga.' : 'Pago confirmado. Ahora personalizamos tu caja: tu pedido sale en ' + CAJA_DIAS + '.';
     if (s === 'proceso') return o.statusLabel + '. Te avisamos cuando salga.';
     if (s === 'enviado') return o.guia ? 'Guía ' + o.guia + (o.transportadora ? ' · ' + o.transportadora : '') : 'Tu pedido va en camino.';
     if (s === 'entregado') return Array.isArray(o.opinados) && o.opinados.length < o.items.length ? '¡Entregado! Cuéntanos cómo te llegaron ⭐' : '¡Entregado! Esperamos que lo disfrutes.';
@@ -1614,10 +1627,12 @@
       '<div class="totals od-tot">' + (p.promoSavings ? '<div class="save"><span>Promociones</span><span>-' + money(p.promoSavings) + '</span></div>' : '') +
       (p.discount ? '<div class="save"><span>Cupón ' + esc(p.couponCode) + '</span><span>-' + money(p.discount) + '</span></div>' : '') +
       (p.envio != null ? '<div><span>' + (o.entrega === 'Recoger' ? 'Recoger en tienda' : o.entrega === 'Domicilio' ? 'Domicilio' : 'Envío nacional') + '</span><span>' + (p.envio ? money(p.envio) : 'Gratis') + '</span></div>' : '') +
+      (p.caja ? '<div><span>Caja personalizada</span><span>' + money(p.caja) + '</span></div>' : '') +
       '<div class="grand"><span>Total</span><span>' + money(p.totalConEnvio) + '</span></div>' +
       ((o.pago === 'Contraentrega' || o.pago === 'En tienda') && p.saldoContraentrega ? '<div><span>' + (o.pago === 'En tienda' ? 'Pagas al recoger' : 'Pagas al recibir') + '</span><span>' + money(p.saldoContraentrega) + '</span></div>' : '') + '</div>' +
       '<button type="button" class="btn btn-line btn-block" data-rebuy="' + esc(o.numero) + '"><svg aria-hidden="true"><use href="#i-repeat"/></svg>Comprar de nuevo</button></section>' +
-      '<section class="od-sec"><h4>Entrega</h4><dl class="od-dl"><div><dt>Recibe</dt><dd>' + esc(o.nombre) + '</dd></div><div><dt>' + (o.entrega === 'Recoger' ? 'Entrega' : 'Dirección') + '</dt><dd>' + (o.entrega === 'Recoger' ? 'Recoge en la tienda' : esc(o.direccion) + ', ' + esc(o.ciudad) + (o.departamento ? ', ' + esc(o.departamento) : '')) + '</dd></div><div><dt>Pago</dt><dd>' + esc(PAGO_TXT[o.pago] || o.pago) + '</dd></div><div><dt>Empaque</dt><dd>Sin caja</dd></div></dl></section>' +
+      '<section class="od-sec"><h4>Entrega</h4><dl class="od-dl"><div><dt>Recibe</dt><dd>' + esc(o.nombre) + '</dd></div>' +
+      '<div><dt>Empaque</dt><dd>' + (o.empaque === 'Con caja' ? 'Con caja personalizada (sale ' + esc(CAJA_DIAS) + ' después del pago)' : 'Sin caja, protegido en bolsa') + '</dd></div><div><dt>' + (o.entrega === 'Recoger' ? 'Entrega' : 'Dirección') + '</dt><dd>' + (o.entrega === 'Recoger' ? 'Recoge en la tienda' : esc(o.direccion) + ', ' + esc(o.ciudad) + (o.departamento ? ', ' + esc(o.departamento) : '')) + '</dd></div><div><dt>Pago</dt><dd>' + esc(PAGO_TXT[o.pago] || o.pago) + '</dd></div></dl></section>' +
       '<div class="od-actions"><a class="btn btn-primary" href="' + esc(l.recibo) + '">Ver y descargar recibo</a><a class="btn btn-wa" href="' + esc(wa) + '" target="_blank" rel="noopener"><svg aria-hidden="true"><use href="#i-wa"/></svg>Preguntar por WhatsApp</a></div>';
     if (!keepScroll) { $('ordDetail').scrollTop = 0; $('ordDetail').focus({ preventScroll: true }); }
     if (o.pagoReportado && o.pagoReportado.hasComprobante) loadProof(o);

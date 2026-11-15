@@ -25,13 +25,14 @@
     document.title = 'Recibo ' + d.numero + ' — Punto Club';
     var fecha = new Date(d.createdAt).toLocaleString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     var rows = d.items.map(function (i) {
-      return '<tr><td>' + esc(i.brand + ' ' + i.name) + '<br><small>Talla ' + esc(i.size) + (i.color ? ' · ' + esc(i.color) : '') + '</small><br><span class="nobox">Sin caja</span></td><td class="num">' + esc(i.qty) + '</td><td class="num">' + money(i.price) + '</td><td class="num">' + money(i.price * i.qty) + '</td></tr>';
+      return '<tr><td>' + esc(i.brand + ' ' + i.name) + '<br><small>Talla ' + esc(i.size) + (i.color ? ' · ' + esc(i.color) : '') + '</small><br><span class="nobox">' + (d.empaque === 'Con caja' ? 'Con caja personalizada' : 'Sin caja') + '</span></td><td class="num">' + esc(i.qty) + '</td><td class="num">' + money(i.price) + '</td><td class="num">' + money(i.price * i.qty) + '</td></tr>';
     }).join('');
     var sub = d.items.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
     var foot = '<tr><td colspan="3">Subtotal productos</td><td class="num">' + money(sub) + '</td></tr>';
     if (d.promoSavings) foot += '<tr><td colspan="3">Ahorro por promociones (ya incluido en los precios)</td><td class="num">-' + money(d.promoSavings) + '</td></tr>';
     if (d.discount) foot += '<tr><td colspan="3">Cupón ' + esc(d.couponCode) + '</td><td class="num">-' + money(d.discount) + '</td></tr>';
     if (d.envio != null) foot += '<tr><td colspan="3">' + (d.entrega === 'Recoger' ? 'Recoger en la tienda' : d.entrega === 'Domicilio' ? 'Domicilio' : 'Envío nacional') + '</td><td class="num">' + (d.envio ? money(d.envio) : 'Gratis') + '</td></tr>';
+    if (d.caja) foot += '<tr><td colspan="3">Caja personalizada</td><td class="num">' + money(d.caja) + '</td></tr>';
     foot += '<tr class="grand"><td colspan="3">Total</td><td class="num">' + money(d.totalConEnvio) + '</td></tr>';
     var pagoTxt = d.pago === 'Contraentrega'
       ? 'Contraentrega: ' + money(d.pagarAhora) + ' por transferencia y ' + money(d.saldoContraentrega) + ' al recibir'
@@ -48,7 +49,7 @@
       '<div><dt>Entrega</dt><dd>' + esc(d.direccion) + (d.entrega === 'Recoger' ? '' : ', ' + esc(d.ciudad) + (d.departamento ? ', ' + esc(d.departamento) : '')) + '</dd></div><div><dt>Forma de pago</dt><dd>' + esc(pagoTxt) + '</dd></div>' +
       (d.guia ? '<div><dt>Guía de envío</dt><dd>' + esc(d.guia) + (d.transportadora ? ' (' + esc(d.transportadora) + ')' : '') + '</dd></div>' : '') + '</dl>' +
       '<div class="table-wrap"><table><caption class="sr-only">Productos del pedido</caption><thead><tr><th scope="col">Producto</th><th scope="col" class="num">Cant.</th><th scope="col" class="num">Precio</th><th scope="col" class="num">Valor</th></tr></thead><tbody>' + rows + '</tbody><tfoot>' + foot + '</tfoot></table></div>' +
-      '<p class="rc-legal"><b>Todos los productos se entregan sin caja.</b> Precios en pesos colombianos con impuestos incluidos. Tienes derecho de retracto dentro de los 5 días hábiles siguientes a la entrega y garantía legal de 1 año; consulta <a href="/cambios-y-devoluciones.html">cambios, garantía y retracto</a>. ' +
+      '<p class="rc-legal"><b>Empaque: ' + (d.empaque === 'Con caja' ? 'con caja personalizada' : 'sin caja (protegido en bolsa)') + '.</b> Precios en pesos colombianos con impuestos incluidos. Tienes derecho de retracto dentro de los 5 días hábiles siguientes a la entrega y garantía legal de 1 año; consulta <a href="/cambios-y-devoluciones.html">cambios, garantía y retracto</a>. ' +
       'Este documento es un recibo del pedido y <b>no reemplaza la factura electrónica de venta</b>; si la necesitas, pídela por WhatsApp con este número.</p>' +
       '</article>';
     if (N.pintar) N.pintar();

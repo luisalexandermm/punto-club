@@ -11,6 +11,7 @@ const { makeOrderNumber, clienteHash } = require('../lib/pedidos');
 const { sendWhatsApp, adminWhatsApp } = require('../lib/whatsapp');
 const { notifyAdmins } = require('../lib/push');
 const { limitar, demasiados } = require('../lib/limite');
+const { empaqueDe, valorCaja, CAJA_DIAS_EXTRA } = require('../lib/empaque');
 
 /* Por ahora Punto Club solo hace envíos nacionales por transportadora y solo recibe
    pagos por transferencia o QR (a Nequi o llave Bre-B). Wompi queda en pausa: su código
@@ -33,10 +34,13 @@ function receiptText(numero, items, customer, pricing) {
   if (pricing.segunda) extra.push(`(incluye ${pricing.segunda.title}: -${money(pricing.segunda.savings)})`);
   if (pricing.coupon) extra.push(`Cupón ${pricing.coupon.code}: -${money(pricing.coupon.discount)}`);
   extra.push(`Envío nacional: ${pricing.envio ? money(pricing.envio) : 'gratis'}`);
+  if (pricing.caja) extra.push(`Caja personalizada: ${money(pricing.caja)}`);
   const pago = `Pago por transferencia o QR (Nequi o Bre-B): ${money(pricing.pagarAhora)}. Envíanos el comprobante.`;
   const entrega = `Envío a: ${customer.direccion}${customer.barrio ? ', ' + customer.barrio : ''}, ${customer.ciudad}, ${customer.departamento}`;
   return `Punto Club — Pedido ${numero}\n\n${lines}\n\n${extra.join('\n')}\nTotal: ${money(pricing.totalConEnvio)}\n${pago}\n` +
-    `${entrega}\nTodos los productos se entregan sin caja.\n\n` +
+    `${entrega}\n` + (customer.empaque === 'Con caja'
+      ? `Empaque: con caja personalizada. Tu pedido sale ${CAJA_DIAS_EXTRA} después de confirmar el pago, mientras empacamos y personalizamos tu caja.\n\n`
+      : 'Empaque: sin caja (el par va protegido en bolsa).\n\n') +
     `Sigue tu pedido en la sección "Mis pedidos" de la tienda (número ${numero}).`;
 }
 
@@ -67,7 +71,7 @@ module.exports = async (req, res) => {
     notas: cleanText(c.notas, 500),
     pago: PAGOS.includes(c.pago) ? c.pago : null,
     entrega: 'Nacional',
-    empaque: 'Sin caja'
+    empaque: empaqueDe(c.empaque)
   };
   // Liga el pedido al dispositivo del cliente para "Mis pedidos" (solo se guarda el hash)
   const clienteId = clienteHash(cliente);
@@ -91,13 +95,15 @@ module.exports = async (req, res) => {
   /* Envío nacional: tarifa fija (se edita en el panel). Se paga todo antes de despachar. */
   const tarifa = await loadEnvio(supabase);
   const envio = r.freeShipping ? 0 : tarifa;
-  const totalConEnvio = r.total + envio;
+  /* Caja personalizada: valor fijo por cada par (lo decide el servidor, no el navegador) */
+  const caja = valorCaja(customer.empaque, r.items);
+  const totalConEnvio = r.total + envio + caja;
   const pagarAhora = totalConEnvio, saldoContraentrega = 0;
   const pricing = {
     listSubtotal: r.listSubtotal, promoSavings: r.promoSavings, segunda: r.segunda, subtotal: r.subtotal,
     coupon: r.coupon ? { code: r.coupon.code, description: r.coupon.description, discount: r.coupon.discount, freeShipping: r.coupon.freeShipping } : null,
     freeShipping: r.freeShipping, shippingPromo: r.shippingPromo,
-    entrega: 'Nacional', tarifaEnvio: tarifa,
+    entrega: 'Nacional', tarifaEnvio: tarifa, empaque: customer.empaque, caja,
     envio, total: r.total, totalConEnvio, pagarAhora, saldoContraentrega
   };
   customer.consent = {
@@ -106,7 +112,7 @@ module.exports = async (req, res) => {
   };
   const now = new Date().toISOString();
   const tracking = { history: [{ status: 'Recibido', at: now }], guia: '', transportadora: '', nota: '' };
-  const items_ = r.items.map(({ image, ...i }) => ({ ...i, image, empaque: 'Sin caja' }));
+  const items_ = r.items.map(({ image, ...i }) => ({ ...i, image, empaque: customer.empaque }));
 
   /* 4. Guardar (reintenta si el número ya existe; si faltan columnas nuevas, las guarda dentro de customer) */
   let numero, saved = false, lastError = null;
