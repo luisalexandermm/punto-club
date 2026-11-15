@@ -2,7 +2,7 @@
 /* /api/admin/* — panel de administración (requiere token firmado). */
 const supabase = require('../lib/supabase');
 const { ok, err, allowCors, checkToken, slug, hashPassword, cleanText } = require('../lib/helpers');
-const { STATUSES, normalizeStatus, trackingOf, linkOk } = require('../lib/pedidos');
+const { STATUSES, statusOk, normalizeStatus, trackingOf, linkOk } = require('../lib/pedidos');
 const { notifyOrder, pushReady, endpointOk, tablaLista, ADMIN, PUBLIC_KEY } = require('../lib/push');
 const { precioEnvio } = require('../lib/envios');
 const { wompiReady } = require('../lib/wompi');
@@ -413,6 +413,7 @@ module.exports = async (req, res) => {
       const prev = normalizeStatus(o.status);
       const status = body.status != null ? (STATUSES.includes(body.status) ? body.status : null) : prev;
       if (!status) return err(res, 'Estado no válido', 400);
+      if (status !== prev && !statusOk(status, o.customer)) return err(res, 'Ese estado es solo para pedidos con caja personalizada', 400);
       const at = nowIso();
       const tracking = {
         history: status !== prev ? [...t.history, { status, at }] : t.history,

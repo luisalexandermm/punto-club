@@ -8,7 +8,9 @@
   var D = { products: [], orders: [], pqrs: [], settings: {}, promos: [], coupons: [], announcements: [] };
   var knownOrderIds = null;
   var ALL_SIZES = [33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
-  var STEPS = ['Recibido', 'Pago confirmado', 'En preparación', 'Enviado', 'Entregado'];
+  var STEPS = ['Recibido', 'Pago confirmado', 'Hacia el taller', 'En preparación', 'Enviado', 'Entregado'];
+  /* "Hacia el taller" solo aplica a pedidos con caja (Cali → taller de Quibdó) */
+  function stepsDe(c) { return (c || {}).empaque === 'Con caja' ? STEPS : STEPS.filter(function (k) { return k !== 'Hacia el taller'; }); }
   var STATUSES = STEPS.concat(['Cancelado']);
   var N = window.NEGOCIO || {};
 
@@ -265,7 +267,7 @@
     var reported = D.orders.filter(function (o) { return o.status === 'Recibido' && o.customer && o.customer.pagoReportado; }).length;
     $('statsGrid').innerHTML = [
       { v: waitingPay, l: 'Pedidos por confirmar pago' }, { v: reported, l: 'Con pago reportado' },
-      { v: D.orders.filter(function (o) { return o.status === 'En preparación' || o.status === 'Pago confirmado'; }).length, l: 'Por preparar' },
+      { v: D.orders.filter(function (o) { return o.status === 'En preparación' || o.status === 'Pago confirmado' || o.status === 'Hacia el taller'; }).length, l: 'Por preparar' },
       { v: D.orders.filter(function (o) { return o.status === 'Enviado'; }).length, l: 'Envíos en camino' },
       { v: s.activeProducts != null ? s.activeProducts : D.products.filter(function (p) { return p.active !== false; }).length, l: 'Productos visibles' },
       { v: money(s.revenue || 0), l: 'Total pedidos (sin cancelados)' }, { v: s.pqrPending || 0, l: 'PQR sin responder' }
@@ -423,7 +425,9 @@
     c = c || {};
     if (k === 'Pago confirmado' && c.pago === 'Contraentrega') return 'Anticipo confirmado';
     if (k === 'Pago confirmado' && c.pago === 'En tienda') return 'Pedido separado';
+    if (k === 'Hacia el taller') return 'En camino a nuestro taller';
     if (k === 'En preparación' && c.empaque === 'Con caja') return 'Personalizando tu caja';
+    if (k === 'Enviado' && c.entrega === 'Nacional' && c.empaque === 'Con caja') return 'Salió del taller · va hacia ti';
     if (k === 'Enviado' && c.entrega === 'Recoger') return 'Listo para recoger';
     if (k === 'Enviado' && c.entrega === 'Domicilio') return 'Domicilio en camino';
     if (k === 'Entregado' && c.entrega === 'Recoger') return 'Recogido';
@@ -462,18 +466,18 @@
     if (ordFilter === 'todos') return true;
     if (ordFilter === 'activos') return ['Entregado', 'Cancelado'].indexOf(o.status) < 0;
     if (ordFilter === 'pago') return o.status === 'Recibido';
-    if (ordFilter === 'despachar') return o.status === 'Pago confirmado' || o.status === 'En preparación';
+    if (ordFilter === 'despachar') return o.status === 'Pago confirmado' || o.status === 'Hacia el taller' || o.status === 'En preparación';
     var ent = (o.customer || {}).entrega, vivo = ['Entregado', 'Cancelado'].indexOf(o.status) < 0;
     if (ordFilter === 'recoger') return vivo && ent === 'Recoger';
     if (ordFilter === 'domicilio') return vivo && ent === 'Domicilio';
     return o.status === ordFilter;
   }
   function stepsOf(o) {
-    var idx = STEPS.indexOf(o.status), h = (o.tracking && o.tracking.history) || [];
+    var pasos = stepsDe(o.customer), idx = pasos.indexOf(o.status), h = (o.tracking && o.tracking.history) || [];
     var at = function (k) { for (var i = h.length - 1; i >= 0; i--) if (h[i].status === k) return h[i].at; return k === 'Recibido' ? o.created_at : null; };
-    return STEPS.map(function (k, i) {
+    return pasos.map(function (k, i) {
       var label = stateLabel(k, o.customer);
-      return { label: label, state: o.status === 'Cancelado' ? 'todo' : i < idx ? 'done' : i === idx ? (i === STEPS.length - 1 ? 'done' : 'current') : 'todo', at: i <= idx ? at(k) : null };
+      return { label: label, state: o.status === 'Cancelado' ? 'todo' : i < idx ? 'done' : i === idx ? (i === pasos.length - 1 ? 'done' : 'current') : 'todo', at: i <= idx ? at(k) : null };
     });
   }
   /* Mensaje de WhatsApp para avisar al cliente del estado actual de su pedido nacional */
@@ -482,9 +486,10 @@
     var hola = 'Hola ' + (nom || '') + ', ';
     switch (o.status) {
       case 'Recibido': return ['Avisar: recibimos el pedido', hola + 'recibimos tu pedido ' + o.id + ' en Punto Club. Para confirmarlo paga ' + money(pr.pagarAhora || o.total) + ' por QR o transferencia y envíanos el comprobante. Sigue tu pedido aquí: ' + link];
-      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Tu par va a nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link];
-      case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' se está empacando en su caja personalizada 🎁' : ' se está empacando en bolsa protectora 📦') + '. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
-      case 'Enviado': return ['Avisar: enviado con guía', hola + '¡tu pedido ' + o.id + ' ya va en camino a ' + (c.ciudad || 'tu ciudad') + '! 🚚' + (t.guia ? ' Transportadora: ' + (t.transportadora || '—') + '. Número de guía: ' + t.guia + '.' : '') + (t.link ? ' Rastréalo aquí: ' + t.link : '') + ' También lo ves en: ' + link];
+      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Muy pronto tu par sale hacia nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link];
+      case 'Hacia el taller': return ['Avisar: va hacia el taller', hola + 'tu pedido ' + o.id + ' va camino a nuestro taller en Quibdó 🚚, donde lo empacamos en su caja personalizada 🎁. Te avisamos cuando salga hacia ti. Síguelo aquí: ' + link];
+      case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' ya llegó a nuestro taller y se está empacando en su caja personalizada 🎁' : ' se está empacando en bolsa protectora 📦') + '. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
+      case 'Enviado': return ['Avisar: enviado con guía', hola + '¡tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' ya salió de nuestro taller 🎁 y' : '') + ' va en camino a ' + (c.ciudad || 'tu ciudad') + '! 🚚' + (t.guia ? ' Transportadora: ' + (t.transportadora || '—') + '. Número de guía: ' + t.guia + '.' : '') + (t.link ? ' Rastréalo aquí: ' + t.link : '') + ' También lo ves en: ' + link];
       case 'Entregado': return ['Avisar: entregado', hola + 'tu pedido ' + o.id + ' aparece como entregado 🎉. ¡Gracias por comprar en Punto Club! Si algo no está bien, escríbenos por aquí.'];
       case 'Cancelado': return ['Avisar: cancelado', hola + 'tu pedido ' + o.id + ' fue cancelado. Si tienes dudas o quieres hacerlo de nuevo, escríbenos por aquí.'];
       default: return null;
@@ -586,7 +591,7 @@
         '<div class="osec__head"><h3>Seguimiento</h3></div>' +
         '<ol class="timeline" aria-label="Seguimiento del pedido">' + steps.map(function (s) { return '<li class="' + s.state + '">' + esc(s.label) + (s.at ? '<small>' + fdate(s.at) + '</small>' : '') + '</li>'; }).join('') + '</ol>' +
         '<form class="tl-form" data-track="' + esc(o.id) + '">' +
-        '<div class="field"><label for="st-' + esc(o.id) + '">Estado</label><select id="st-' + esc(o.id) + '" name="status">' + STATUSES.map(function (s) { return '<option value="' + s + '"' + (o.status === s ? ' selected' : '') + '>' + esc(stateLabel(s, c)) + '</option>'; }).join('') + '</select></div>' +
+        '<div class="field"><label for="st-' + esc(o.id) + '">Estado</label><select id="st-' + esc(o.id) + '" name="status">' + stepsDe(c).concat(['Cancelado']).map(function (s) { return '<option value="' + s + '"' + (o.status === s ? ' selected' : '') + '>' + esc(stateLabel(s, c)) + '</option>'; }).join('') + '</select></div>' +
         (isLocal ? '<input type="hidden" name="guia" value="' + esc(t.guia || '') + '">' : '<div class="field"><label for="gu-' + esc(o.id) + '">Número de guía</label><input id="gu-' + esc(o.id) + '" name="guia" value="' + esc(t.guia || '') + '" maxlength="60"></div>') +
         (c.entrega === 'Recoger' ? '<input type="hidden" name="transportadora" value="' + esc(t.transportadora || '') + '">'
           : '<div class="field"><label for="tr-' + esc(o.id) + '">' + (c.entrega === 'Domicilio' ? 'Domiciliario' : 'Transportadora') + '</label><input id="tr-' + esc(o.id) + '" name="transportadora" list="' + (c.entrega === 'Domicilio' ? 'riders' : 'carriers') + '" value="' + esc(t.transportadora || '') + '" maxlength="60"' + (c.entrega === 'Domicilio' ? ' placeholder="Quién lo lleva"' : '') + '></div>') +

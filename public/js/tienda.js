@@ -1532,8 +1532,11 @@
     if (s === 'proceso' && o.status === 'Recibido' && o.pago === 'En tienda') return 'Separado. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recogerlo en la tienda.';
     if (s === 'proceso' && o.status === 'Recibido' && !o.pagoReportado) return 'Recibimos tu pedido. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recibirlo.';
     if (s === 'proceso' && o.status === 'Recibido') return 'Recibimos tu comprobante. Lo estamos verificando.';
-    if (s === 'proceso' && o.empaque === 'Con caja') return o.status === 'En preparación' ? 'Estamos empacando tu par en su caja personalizada. Te avisamos cuando salga.' : 'Pago confirmado. Tu par va a nuestro taller en Quibdó, donde personalizamos tu caja.' + (o.plazo ? ' Te llega en unos ' + o.plazo + '.' : '');
+    if (s === 'proceso' && o.empaque === 'Con caja') return o.status === 'En preparación' ? 'Tu par ya está en nuestro taller: lo estamos empacando en su caja personalizada. Te avisamos cuando salga hacia ti.'
+      : o.status === 'Hacia el taller' ? 'Tu par va camino a nuestro taller en Quibdó, donde personalizamos tu caja.' + (o.plazo ? ' Te llega en unos ' + o.plazo + ' desde el pago.' : '')
+      : 'Pago confirmado. Muy pronto tu par sale hacia nuestro taller en Quibdó, donde personalizamos tu caja.' + (o.plazo ? ' Te llega en unos ' + o.plazo + '.' : '');
     if (s === 'proceso') return o.statusLabel + '. Te avisamos cuando salga.';
+    if (s === 'enviado' && o.empaque === 'Con caja' && !o.guia) return 'Tu caja salió del taller y va hacia ti.';
     if (s === 'enviado') return o.guia ? 'Guía ' + o.guia + (o.transportadora ? ' · ' + o.transportadora : '') : 'Tu pedido va en camino.';
     if (s === 'entregado') return Array.isArray(o.opinados) && o.opinados.length < o.items.length ? '¡Entregado! Cuéntanos cómo te llegaron ⭐' : '¡Entregado! Esperamos que lo disfrutes.';
     return 'Este pedido fue cancelado.';

@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS orders (
   customer    JSONB DEFAULT '{}',
   items       JSONB DEFAULT '[]',
   total       BIGINT DEFAULT 0,
-  status      TEXT DEFAULT 'Recibido',    -- Recibido | Pago confirmado | En preparación | Enviado | Entregado | Cancelado
+  status      TEXT DEFAULT 'Recibido',    -- Recibido | Pago confirmado | Hacia el taller (solo con caja) | En preparación | Enviado | Entregado | Cancelado
   pricing     JSONB,
   tracking    JSONB DEFAULT '{}',
   created_at  TIMESTAMPTZ DEFAULT NOW(),
