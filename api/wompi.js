@@ -57,7 +57,7 @@ async function applyTransaction(tx) {
 
   if (confirm) {
     result.orderStatus = 'Pago confirmado';
-    await promoApertura.premiar(supabase, { ...o, customer: update.customer, status: 'Pago confirmado' });
+    await promoApertura.confirmar(supabase, { ...o, customer: update.customer, status: 'Pago confirmado' });
     await Promise.all([
       sendWhatsApp(adminWhatsApp(), `Pago aprobado en Wompi\nPedido ${numero} · ${money(wompi.valor)} · ${wompi.metodo}\n${c.nombre || ''} · ${c.direccion || ''}, ${c.barrio || ''} (Quibdó)`),
       c.telefono ? sendWhatsApp('+57' + c.telefono, `Punto Club: recibimos tu pago de ${money(wompi.valor)} para el pedido ${numero}. Ya lo estamos preparando.`) : false

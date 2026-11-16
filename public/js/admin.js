@@ -419,7 +419,7 @@
 
   var WOMPI_TXT = { APPROVED: 'pago aprobado', DECLINED: 'pago rechazado', VOIDED: 'pago anulado', ERROR: 'error en el pago', PENDING: 'pago en proceso', REVISAR: 'aprobado con valor distinto, revisar en Wompi' };
   var ENTREGA_TXT = { Recoger: 'Recoge en la tienda', Domicilio: 'Domicilio', Local: 'Local · Quibdó', Nacional: 'Envío nacional' };
-  var PAGO_TXT = { Wompi: 'En línea (Wompi)', Nequi: 'Transferencia o QR', Contraentrega: 'Contraentrega', 'En tienda': 'Paga al recoger' };
+  var PAGO_TXT = { MercadoPago: 'Mercado Pago', Wompi: 'En línea (Wompi)', Nequi: 'Transferencia o QR', Contraentrega: 'Contraentrega', 'En tienda': 'Paga al recoger' };
   /* Nombre de cada estado según cómo se entrega y se paga (el valor guardado no cambia) */
   function stateLabel(k, c) {
     c = c || {};
@@ -444,7 +444,7 @@
     var s = o.status, rep = o.customer && o.customer.pagoReportado;
     var cls = s === 'Cancelado' ? 'bad' : s === 'Recibido' ? (rep ? 'lime' : 'warn') : s === 'Entregado' ? 'on' : 'off';
     var c = o.customer || {}, sep = c.pago === 'En tienda';
-    var label = s === 'Recibido' ? (rep ? 'Pago reportado' : sep ? 'Separado: confirmar' : c.pago === 'Wompi' ? 'Esperando pago en línea' : 'Esperando pago') : stateLabel(s, c);
+    var label = s === 'Recibido' ? (rep ? 'Pago reportado' : sep ? 'Separado: confirmar' : c.pago === 'Wompi' || c.pago === 'MercadoPago' ? 'Esperando pago en línea' : 'Esperando pago') : stateLabel(s, c);
     return '<span class="pill ' + cls + '">' + esc(label) + '</span>';
   }
 
@@ -481,18 +481,18 @@
     });
   }
   /* Mensaje de WhatsApp para avisar al cliente del estado actual de su pedido nacional */
-  /* Promo de apertura: texto del premio para el mensaje de WhatsApp */
-  function premioTxt(c) {
-    var p = c.premioApertura;
-    if (!p || p.anulado) return '';
-    return '\n\n🎁 ¡Además ganaste nuestra promo de apertura! Tienes ' + money(p.valor) + ' de descuento en tu próxima compra desde ' + money(p.minimo) + ' con el cupón ' + p.code + ' (válido hasta el ' + new Date(p.vence).toLocaleDateString('es-CO') + ', un solo uso).';
+  /* FIRST 10: texto para el mensaje de WhatsApp de pago confirmado */
+  function first10Txt(o) {
+    var f = ((o.pricing || {}).first10 || {}).descuento;
+    if (!f) return '';
+    return '\n\n🎉 ¡FELICIDADES! ERES PARTE DEL FIRST 10. Tu pedido ha sido confirmado y recibiste ' + money(f) + ' de descuento por ser uno de nuestros primeros 10 compradores. Gracias por confiar en PUNTO CLUB desde el primer día. 🟢👟 TU ESTILO. TU PUNTO.';
   }
   function waEstado(o, nom) {
     var c = o.customer || {}, t = o.tracking || {}, pr = o.pricing || {}, link = trackLink(o);
     var hola = 'Hola ' + (nom || '') + ', ';
     switch (o.status) {
       case 'Recibido': return ['Avisar: recibimos el pedido', hola + 'recibimos tu pedido ' + o.id + ' en Punto Club. Para confirmarlo paga ' + money(pr.pagarAhora || o.total) + ' por QR o transferencia y envíanos el comprobante. Sigue tu pedido aquí: ' + link];
-      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Muy pronto tu par sale hacia nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link + premioTxt(c)];
+      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Muy pronto tu par sale hacia nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link + first10Txt(o)];
       case 'Hacia el taller': return ['Avisar: va hacia el taller', hola + 'tu pedido ' + o.id + ' va camino a nuestro taller en Quibdó 🚚, donde lo empacamos en su caja personalizada 🎁. Te avisamos cuando salga hacia ti. Síguelo aquí: ' + link];
       case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' ya llegó a nuestro taller y se está empacando en su caja personalizada 🎁' : ' se está empacando en bolsa protectora 📦') + '. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
       case 'Enviado': return ['Avisar: enviado con guía', hola + '¡tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' ya salió de nuestro taller 🎁 y' : '') + ' va en camino a ' + (c.ciudad || 'tu ciudad') + '! 🚚' + (t.guia ? ' Transportadora: ' + (t.transportadora || '—') + '. Número de guía: ' + t.guia + '.' : '') + (t.link ? ' Rastréalo aquí: ' + t.link : '') + ' También lo ves en: ' + link];
@@ -532,6 +532,7 @@
         lines = '<div class="money-lines">' +
           (pr.promoSavings ? '<div><span>Ahorro por promociones</span><span>-' + money(pr.promoSavings) + '</span></div>' : '') +
           (pr.coupon && pr.coupon.discount ? '<div><span>Cupón ' + esc(pr.coupon.code) + '</span><span>-' + money(pr.coupon.discount) + '</span></div>' : '') +
+          (pr.first10 ? '<div><span>Descuento FIRST 10</span><span>-' + money(pr.first10.descuento) + '</span></div>' : '') +
           '<div><span>' + (c.entrega === 'Recoger' ? 'Recoge en la tienda' : c.entrega === 'Domicilio' ? 'Domicilio' + (c.barrio ? ' (' + esc(c.barrio) + ')' : '') : c.entrega === 'Nacional' ? 'Envío nacional' : 'Envío') + '</span><span>' + (pr.envio ? money(pr.envio) : 'Gratis') + '</span></div>' +
           (pr.caja ? '<div><span>Caja personalizada</span><span>' + money(pr.caja) + '</span></div>' : '') +
           '<div class="money-lines__total"><b>Total</b><b>' + money(pr.totalConEnvio != null ? pr.totalConEnvio : o.total) + '</b></div>' +
@@ -580,8 +581,9 @@
           '<span class="ocard__right">' + statusPill(o) + '<b class="big-price">' + money(o.total) + '</b><span class="ocard__chev" aria-hidden="true"></span></span>' +
         '</summary>' +
         '<div class="ocard__body">' +
+        (c.mercadopago ? '<p class="ref-box"><b>Mercado Pago: ' + esc((WOMPI_TXT[c.mercadopago.estado] || c.mercadopago.estado || '').replace('revisar en Wompi', 'revisar en Mercado Pago')) + '</b>' + (c.mercadopago.metodo ? ' · ' + esc(c.mercadopago.metodo) : '') + (c.mercadopago.valor ? ' · ' + money(c.mercadopago.valor) : '') + ' <small>(' + fdate(c.mercadopago.at) + ')</small><br>Orden ' + esc(c.mercadopago.orderId || '') + (c.mercadopago.estado === 'APPROVED' ? '' : '<br>Si el cliente dice que ya pagó, revisa en tu cuenta de Mercado Pago antes de confirmar.') + '</p>' : '') +
         (c.wompi ? '<p class="ref-box"><b>Wompi: ' + esc(WOMPI_TXT[c.wompi.status] || c.wompi.status) + '</b>' + (c.wompi.metodo ? ' · ' + esc(c.wompi.metodo) : '') + ' · ' + money(c.wompi.valor) + ' <small>(' + fdate(c.wompi.at) + ')</small><br>Transacción ' + esc(c.wompi.transactionId) + ' · Ref. ' + esc(c.wompi.reference) + '</p>' : '') +
-        (c.premioApertura ? '<p class="ref-box">🎁 <b>' + (c.premioApertura.anulado ? 'Premio de apertura anulado' : 'Ganó la promo de apertura') + '</b> · cupón ' + esc(c.premioApertura.code) + ' por ' + money(c.premioApertura.valor) + ' (vence ' + esc(new Date(c.premioApertura.vence).toLocaleDateString('es-CO')) + ')</p>' : '') +
+        ((o.pricing || {}).first10 ? '<p class="ref-box">🎟️ <b>FIRST 10</b> · descuento de ' + money(o.pricing.first10.descuento) + ' · ' + (o.status === 'Cancelado' ? 'cupo liberado (pedido cancelado)' : o.status === 'Recibido' ? 'cupo <b>reservado</b>: se confirma cuando confirmes el pago' : 'cupo <b>confirmado</b>') + '</p>' : '') +
         (c.pagoReportado ? '<p class="ref-box"><b>El cliente reportó su pago</b>' + (c.pagoReportado.ref ? ' · Referencia: ' + esc(c.pagoReportado.ref) : '') + ' <small>(' + fdate(c.pagoReportado.at) + ')</small><br>Revisa que el pago llegó a tu cuenta antes de confirmar.' + (c.pagoReportado.cuenta ? ' El cliente dice que pagó a: <b>' + esc(c.pagoReportado.cuenta) + '</b>.' : '') + '' + (c.pagoReportado.hasComprobante ? ' <button class="btn btn-line btn-sm" type="button" data-proof="' + esc(o.id) + '">Ver foto del comprobante</button>' : '') + '</p>' : '') +
         '<div class="ocard__grid">' +
           '<section class="osec osec--envio" aria-label="Datos de envío">' +
@@ -591,7 +593,7 @@
           '<section class="osec" aria-label="Productos y pago">' +
             '<div class="osec__head"><h3>Productos</h3><span class="osec__meta">' + fdate(o.created_at) + '</span></div>' +
             '<ul class="oitems">' + items + '</ul>' + lines +
-            '<div class="order-meta">' + entregaPill(c) + '<span class="pill off">' + esc(PAGO_TXT[c.pago] || c.pago || 'Sin método') + '</span>' + (pr.coupon ? '<span class="pill off">Cupón ' + esc(pr.coupon.code) + '</span>' : '') + (c.empaque === 'Con caja' ? '<span class="pill lime">🎁 Con caja personalizada</span>' : '<span class="pill warn">Sin caja</span>') + '</div>' +
+            '<div class="order-meta">' + entregaPill(c) + '<span class="pill off">' + esc(PAGO_TXT[c.pago] || c.pago || 'Sin método') + '</span>' + (pr.coupon ? '<span class="pill off">Cupón ' + esc(pr.coupon.code) + '</span>' : '') + (pr.first10 ? '<span class="pill lime">🎟️ FIRST 10</span>' : '') + (c.empaque === 'Con caja' ? '<span class="pill lime">🎁 Con caja personalizada</span>' : '<span class="pill warn">Sin caja</span>') + '</div>' +
           '</section>' +
         '</div>' +
         '<section class="osec osec--track" aria-label="Seguimiento">' +
@@ -624,17 +626,19 @@
     var cambioEstado = o && o.status !== body.status;
     if (o && o.status === 'Recibido' && body.status !== 'Recibido' && body.status !== 'Cancelado' &&
       !(o.customer && o.customer.wompi && o.customer.wompi.status === 'APPROVED') &&
+      !(o.customer && o.customer.mercadopago && o.customer.mercadopago.estado === 'APPROVED') &&
       !(o.customer && o.customer.pago === 'En tienda') &&
-      !confirm('¿Ya verificaste' + (o.customer && o.customer.pago === 'Wompi' ? ' en Wompi' : ' en tu cuenta') + ' que llegó el pago de ' + money((o.pricing || {}).pagarAhora || o.total) + ' para el pedido ' + id + '?')) return;
+      !confirm('¿Ya verificaste' + (o.customer && o.customer.pago === 'Wompi' ? ' en Wompi' : o.customer && o.customer.pago === 'MercadoPago' ? ' en Mercado Pago' : ' en tu cuenta') + ' que llegó el pago de ' + money((o.pricing || {}).pagarAhora || o.total) + ' para el pedido ' + id + '?')) return;
     var btn = f.querySelector('[type=submit]'); btn.disabled = true;
     try {
       var upd = await api('/admin/orders/' + encodeURIComponent(id), { method: 'PUT', body: body });
       D.orders = D.orders.map(function (x) { return x.id === id ? upd : x; });
       renderOrders(); renderStats();
       var avisoTxt = upd.avisos > 0 ? ' · notificación enviada al celular del cliente' : upd.avisos === 0 ? ' · el cliente no tiene avisos activados' : '';
-      var premioAv = upd.premio ? ' · 🎁 ganó el cupón ' + upd.premio.premio.code + (upd.premio.cerrada ? ' (era el último: la promo de apertura se apagó sola)' : ' (quedan ' + upd.premio.quedan + ')') : '';
-      toast('Seguimiento de ' + id + ' guardado' + avisoTxt + premioAv + (cambioEstado ? '. Avísale también por WhatsApp 👇' : ''), upd.premio ? 9000 : 6000);
-      if (upd.premio) api('/admin/settings').then(function (s) { D.settings = s; fillPromoAp(); }, function () {});
+      var f10 = upd.first10, premioAv = !f10 ? '' : f10.sinCupo ? ' · ⚠️ FIRST 10: la reserva de este pedido venció y ya no quedan cupos. El cliente pagó con el descuento: decide si lo respetas o le cobras la diferencia.'
+        : f10.confirmado ? ' · 🎟️ cupo FIRST 10 confirmado' + (f10.agotado ? ' (era el último: FIRST 10 AGOTADO)' : ' (quedan ' + f10.quedan + ')') : f10.liberado ? ' · cupo FIRST 10 liberado' : '';
+      toast('Seguimiento de ' + id + ' guardado' + avisoTxt + premioAv + (cambioEstado ? '. Avísale también por WhatsApp 👇' : ''), f10 ? 10000 : 6000);
+      if (f10) api('/admin/settings').then(function (s) { D.settings = s; fillPromoAp(); }, function () {});
       if (cambioEstado) {
         var wb = document.querySelector('[data-wa-quick="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
         if (wb) { wb.classList.add('pulse'); wb.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(function () { wb.focus({ preventScroll: true }); }, 400); }
@@ -693,6 +697,7 @@
     var sub = (o.items || []).reduce(function (s, i) { return s + i.price * i.qty; }, 0);
     var foot = '<tr><td colspan="3">Subtotal</td><td class="n">' + money(sub) + '</td></tr>' +
       (pr.coupon ? '<tr><td colspan="3">Cupón ' + esc(pr.coupon.code) + '</td><td class="n">-' + money(pr.coupon.discount) + '</td></tr>' : '') +
+      (pr.first10 ? '<tr><td colspan="3">Descuento FIRST 10 (apertura)</td><td class="n">-' + money(pr.first10.descuento) + '</td></tr>' : '') +
       (pr.envio != null ? '<tr><td colspan="3">' + (c.entrega === 'Recoger' ? 'Recoger en la tienda' : c.entrega === 'Domicilio' ? 'Domicilio' + (c.barrio ? ' (' + esc(c.barrio) + ')' : '') : c.entrega === 'Nacional' ? 'Envío nacional' : 'Envío') + '</td><td class="n">' + (pr.envio ? money(pr.envio) : 'Gratis') + '</td></tr>' : '') +
       (pr.caja ? '<tr><td colspan="3">Caja personalizada</td><td class="n">' + money(pr.caja) + '</td></tr>' : '') +
       '<tr class="g"><td colspan="3">Total</td><td class="n">' + money(o.total) + '</td></tr>';
@@ -1139,29 +1144,28 @@
   /* ---------------- ajustes ---------------- */
   function fillSettings() { var s = D.settings || {}; $('sWa').value = s.whatsapp || ''; $('sShip').value = s.shippingNote || ''; fillEnvio(); fillAccounts(); fillPromoAp(); if (N.pintar) N.pintar(); }
 
-  /* ---------------- promo de apertura: los primeros N pedidos pagados ganan un cupón ---------------- */
+  /* ---------------- FIRST 10: los primeros N clientes con pago confirmado tienen descuento automático ---------------- */
   function fillPromoAp() {
     var p = (D.settings || {}).promoApertura;
     if (!p) { $('apForm').hidden = true; return; }
     $('apForm').hidden = false;
     $('apWarn').hidden = !!p.listo;
-    $('apOn').checked = !!p.activa; $('apCupos').value = p.cupos; $('apValor').value = p.valor; $('apMin').value = p.minimo; $('apDias').value = p.dias;
-    $('apCount').innerHTML = '<b>' + p.entregados + ' de ' + p.cupos + '</b> premios entregados · ' +
-      (p.quedan ? 'quedan <b>' + p.quedan + '</b>' : 'no quedan cupos') + ' · ' +
-      (p.activa ? '<span class="pill on">Activa</span>' : p.cerradaAuto ? '<span class="pill off">Se apagó sola: ya se entregaron todos</span>' : '<span class="pill off">Apagada</span>');
-    var ganadores = (D.orders || []).filter(function (o) { return o.customer && o.customer.premioApertura; });
-    $('apList').innerHTML = ganadores.length ? '<ul class="ap-list">' + ganadores.map(function (o) {
-      var pr = o.customer.premioApertura, cup = (D.coupons || []).filter(function (x) { return x.code === pr.code; })[0];
-      var est = pr.anulado ? '<span class="pill off">Anulado</span>' : cup && cup.uses > 0 ? '<span class="pill on">Ya lo usó</span>' : new Date(pr.vence) < new Date() ? '<span class="pill off">Venció</span>' : '<span class="pill warn">Sin usar</span>';
-      return '<li><b>' + esc(pr.code) + '</b> · pedido ' + esc(o.id) + ' · ' + esc((o.customer.nombre || '').split(' ')[0]) + ' · vence ' + esc(new Date(pr.vence).toLocaleDateString('es-CO')) + ' ' + est + '</li>';
+    $('apOn').checked = !!p.activa; $('apCupos').value = p.cupos; $('apValor').value = p.valor; $('apMin').value = p.minimo; $('apHoras').value = p.horas;
+    $('apCount').innerHTML = !p.listo ? '' : '<b>' + p.confirmados + ' de ' + p.cupos + '</b> cupos confirmados · ' +
+      '<b>' + p.reservados + '</b> reservados esperando pago · <b>' + p.disponibles + '</b> disponibles · ' +
+      (p.agotado ? '<span class="pill off">🔒 FIRST 10 AGOTADO</span>' : p.activa ? '<span class="pill on">Activa</span>' : '<span class="pill off">Apagada</span>');
+    var nombre = function (id) { var o = (D.orders || []).filter(function (x) { return x.id === id; })[0]; return o && o.customer ? ' · ' + esc((o.customer.nombre || '').split(' ')[0]) : ''; };
+    $('apList').innerHTML = (p.lista || []).length ? '<ul class="ap-list">' + p.lista.map(function (s) {
+      var est = s.estado === 'confirmado' ? '<span class="pill on">Confirmado</span>' : s.pagoReportado ? '<span class="pill warn">Reservado · pago reportado</span>' : '<span class="pill warn">Reservado · vence ' + esc(new Date(new Date(s.reservadoAt).getTime() + p.horas * 3600000).toLocaleString('es-CO', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })) + '</span>';
+      return '<li>Cupo ' + s.slot + ' · pedido <b>' + esc(s.pedido) + '</b>' + nombre(s.pedido) + ' ' + est + '</li>';
     }).join('') + '</ul>' : '';
   }
   $('apForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-    var body = { activa: $('apOn').checked, cupos: Number($('apCupos').value), valor: Number($('apValor').value), minimo: Number($('apMin').value), dias: Number($('apDias').value) };
-    if (!(body.cupos >= 1) || !(body.valor >= 1000) || !(body.minimo >= 0) || !(body.dias >= 1)) { toast('Revisa los valores de la promo.', 4500); return; }
-    if (body.minimo && body.valor >= body.minimo) { toast('El valor del cupón debe ser menor que la compra mínima.', 4500); return; }
-    try { await api('/admin/settings', { method: 'PUT', body: { promoApertura: body } }); await loadAll(); toast(body.activa ? 'Promo de apertura activa 🎁' : 'Promo de apertura guardada (apagada)'); }
+    var body = { activa: $('apOn').checked, cupos: Number($('apCupos').value), valor: Number($('apValor').value), minimo: Number($('apMin').value), horas: Number($('apHoras').value) };
+    if (!(body.cupos >= 1) || !(body.valor >= 1000) || !(body.minimo >= 0) || !(body.horas >= 1)) { toast('Revisa los valores de FIRST 10.', 4500); return; }
+    if (body.minimo && body.valor >= body.minimo) { toast('El descuento debe ser menor que la compra mínima.', 4500); return; }
+    try { await api('/admin/settings', { method: 'PUT', body: { promoApertura: body } }); await loadAll(); toast(body.activa ? 'FIRST 10 activa 🎟️' : 'FIRST 10 guardada (apagada)'); }
     catch (err) { toast(err.message, 6000); }
   });
 

@@ -730,22 +730,25 @@
     var free = !!(S.coupon && S.coupon.freeShipping) || !!shipPromo;
     // Envío nacional: tarifa fija (se configura en el panel)
     var envio = free ? 0 : ENVIO;
-    var total = Math.max(0, sub - disc);
+    // FIRST 10: descuento automático sobre los productos (nunca sobre el envío ni la caja)
+    var f10 = !disc && f10Ok(sub) ? Math.min(F10.valor, sub) : 0;
+    var total = Math.max(0, sub - disc - f10);
     var count = lines.reduce(function (s, l) { return s + l.qty; }, 0);
     // Caja personalizada: valor por cada par (el servidor cobra el mismo valor)
     var caja = S.empaque === 'Con caja' ? CAJA_PRECIO * count : 0;
-    return { lines: lines, list: list, sub: sub, save: list - sub, seg: seg, disc: disc, free: free, shipPromo: shipPromo, envio: envio, caja: caja, total: total, totalConEnvio: total + envio + caja, count: count };
+    return { lines: lines, list: list, sub: sub, save: list - sub, seg: seg, disc: disc, f10: f10, free: free, shipPromo: shipPromo, envio: envio, caja: caja, total: total, totalConEnvio: total + envio + caja, count: count };
   }
   function totalsHTML(c, pago) {
     var h = '<div><span>Productos</span><span>' + money(c.list) + '</span></div>';
     if (c.save - c.seg.savings > 0) h += '<div class="save"><span>Promociones</span><span>-' + money(c.save - c.seg.savings) + '</span></div>';
     if (c.seg.savings) h += '<div class="save"><span>' + esc(c.seg.title) + '</span><span>-' + money(c.seg.savings) + '</span></div>';
     if (c.disc) h += '<div class="save"><span>Cupón ' + esc(S.coupon.code) + '</span><span>-' + money(c.disc) + '</span></div>';
+    if (c.f10) h += '<div class="save"><span>Descuento FIRST 10</span><span>-' + money(c.f10) + '</span></div>';
     var promoTxt = c.shipPromo && !(S.coupon && S.coupon.freeShipping) ? ' (' + esc(c.shipPromo.title) + ')' : '';
     h += '<div><span>Envío nacional' + promoTxt + '</span><span>' + (c.envio ? money(c.envio) : 'Gratis') + '</span></div>';
     if (c.caja) h += '<div><span>Caja personalizada (' + c.count + (c.count === 1 ? ' par' : ' pares') + ')</span><span>' + money(c.caja) + '</span></div>';
     h += '<div class="grand"><span>Total</span><span>' + money(c.totalConEnvio) + '</span></div>';
-    if (pago) h += '<div><span>Pagas ahora por transferencia o QR</span><span>' + money(c.totalConEnvio) + '</span></div>';
+    if (pago) h += '<div><span>' + (pago === 'MercadoPago' ? 'Pagas ahora con Mercado Pago' : 'Pagas ahora por transferencia o QR') + '</span><span>' + money(c.totalConEnvio) + '</span></div>';
     return h;
   }
   function renderCart() {
@@ -757,6 +760,7 @@
         '<div><div class="ci__price">' + money(l.price * l.qty) + '</div><button type="button" class="ci__rm" data-rm="' + esc(l.key) + '">Quitar<span class="sr-only"> ' + esc(l.p.name) + '</span></button></div></div>';
     }).join('') : '<p class="cart-empty">Tu carrito está vacío.<br>Elige un modelo del catálogo.</p>';
     $('cartFoot').hidden = !c.lines.length;
+    $('cartF10').innerHTML = f10BoxHTML(c);
     $('cartTotals').innerHTML = totalsHTML(c);
     $('toCheckout').disabled = !c.lines.length;
     [$('cartBadge'), $('bnBadge')].forEach(function (b) { b.textContent = c.count; b.hidden = !c.count; });
@@ -771,7 +775,7 @@
     saveCart(); renderCart(); revalidateCoupon();
     if (!S.cart.length) setTimeout(function () { $('cartSheet').querySelector('[data-close]').focus(); }, 30);
   });
-  function openCart() { renderCart(); openLayer($('cartSheet')); applyPendingCoupon(); }
+  function openCart() { renderCart(); openLayer($('cartSheet')); applyPendingCoupon(); if (F10) refreshF10(); }
   $('cartBtn').addEventListener('click', openCart);
   $('bnCart').addEventListener('click', openCart);
 
@@ -816,8 +820,7 @@
     var dep = $('fDepto').value;
     $('noBoxDays').textContent = plazoTxt(dep, 'Sin caja');
     $('boxDays').textContent = plazoTxt(dep, 'Con caja');
-    $('promoAp').hidden = !PROMO_AP;
-    if (PROMO_AP) $('promoAp').innerHTML = '🎁 <b>Promo de apertura:</b> los primeros ' + PROMO_AP.cupos + ' pedidos con pago confirmado ganan un cupón de <b>' + money(PROMO_AP.valor) + '</b> para su próxima compra' + (PROMO_AP.minimo ? ' desde ' + money(PROMO_AP.minimo) : '') + ', válido por ' + PROMO_AP.dias + ' días. <b>' + (PROMO_AP.quedan === 1 ? 'Queda 1 cupo' : 'Quedan ' + PROMO_AP.quedan + ' cupos') + '.</b>';
+    $('coF10').innerHTML = f10BoxHTML(c);
     $('plazoNota').textContent = dep ? 'Entrega estimada a ' + dep + ': ' + plazoTxt(dep, S.empaque) + ' después de confirmar tu pago.' : 'Elige el departamento para ver el plazo exacto de entrega.';
     document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.checked = r.value === S.empaque; });
     $('payNequiTxt').textContent = 'Desde la app de cualquier banco (Nequi, Bancolombia, Daviplata…). Pagas ' + money(c.totalConEnvio) + ' ahora.';
@@ -826,7 +829,68 @@
   document.querySelectorAll('input[name="pago"]').forEach(function (r) { r.addEventListener('change', renderCheckoutSummary); });
   /* Empaque: sin caja (sale apenas se confirma el pago) o con caja personalizada (+valor por par y unos días más) */
   var CAJA_PRECIO = Number(N.cajaPrecio) || 10000;
-  var PROMO_AP = null; // promo de apertura (de /api/catalog → settings.promoApertura)
+
+  /* ---------------- FIRST 10: promoción de apertura (descuento automático, cupos en vivo) ----------------
+     Llega de /api/catalog → settings.promoApertura y se refresca cada minuto con /api/catalog?first10=1.
+     El servidor decide de verdad al registrar el pedido (cupos libres, un descuento por cliente,
+     sin cupones); aquí solo se muestra el estado y el descuento esperado. */
+  var F10 = null;
+  function f10Ok(sub) { return !!(F10 && !F10.agotado && F10.disponibles > 0 && !S.coupon && sub >= F10.minimo); }
+  function f10Estado() {
+    if (!F10) return '';
+    if (F10.agotado) return '🔒 FIRST 10 AGOTADO. ¡Gracias por participar!';
+    var d = F10.disponibles;
+    if (!d) return '⏳ Todos los cupos están reservados por pedidos que esperan su pago. Si alguno no se paga, el cupo se libera.';
+    if (d >= F10.cupos) return '🟢 ¡Los ' + F10.cupos + ' cupos están disponibles!';
+    if (d >= 6) return '🔥 ¡La promoción FIRST 10 ya comenzó!';
+    if (d >= 3) return '⚡ ¡Quedan pocos cupos!';
+    return '🚨 ¡Últimos cupos de ' + money(F10.valor) + ' OFF!';
+  }
+  function f10Meter() {
+    var d = F10.agotado ? 0 : F10.disponibles;
+    return '<div class="f10-meter"><p class="f10-meter__st">' + f10Estado() + '</p>' +
+      '<div class="f10-meter__bar" role="progressbar" aria-label="Cupos FIRST 10 disponibles" aria-valuemin="0" aria-valuemax="' + F10.cupos + '" aria-valuenow="' + d + '"><i style="width:' + Math.round(d / F10.cupos * 100) + '%"></i></div>' +
+      '<p class="f10-meter__n"><b>' + d + ' de ' + F10.cupos + '</b> cupos disponibles' + (F10.reservados && !F10.agotado ? ' · ' + F10.reservados + (F10.reservados === 1 ? ' reservado' : ' reservados') + ' esperando pago' : '') + '</p></div>';
+  }
+  function f10Fine() { return 'Exclusivo para los primeros ' + F10.cupos + ' clientes con pago confirmado. Un descuento por cliente. Compra mínima de ' + money(F10.minimo) + ' en productos. No aplica al envío ni a la caja personalizada. No acumulable con otros cupones.'; }
+  function renderF10Banner() {
+    var b = $('f10'); if (!b) return;
+    b.hidden = !F10;
+    if (!F10) { b.innerHTML = ''; return; }
+    b.classList.toggle('f10--off', !!F10.agotado);
+    b.innerHTML = '<div class="f10__in">' +
+      '<p class="f10__kick">🎟️ FIRST 10 | PROMOCIÓN DE APERTURA</p>' +
+      (F10.agotado
+        ? '<h2 class="f10__t" id="f10T">🔒 FIRST 10 <span>AGOTADO</span></h2><p class="f10__lead">¡Gracias por participar! Los ' + F10.cupos + ' cupos de la promoción de apertura ya tienen dueño.</p>'
+        : '<h2 class="f10__t" id="f10T">¡Los primeros ' + F10.cupos + ' tienen <span>' + money(F10.valor) + '</span> de descuento!</h2>' +
+          '<p class="f10__lead">Celebra la apertura de PUNTO CLUB y consigue ' + money(F10.valor) + ' COP de descuento en tu primera compra.</p>' +
+          '<ul class="f10__list"><li>🔥 Solo ' + F10.cupos + ' cupos disponibles.</li><li>👟 Compra mínima: ' + money(F10.minimo) + ' en productos.</li><li>⚡ Descuento aplicado automáticamente.</li></ul>') +
+      f10Meter() +
+      (F10.agotado ? '' : '<a class="btn f10__cta" href="#catalogo">¡Asegura tu cupo antes de que se agoten!</a><p class="f10__fine">' + f10Fine() + '</p>') +
+      '<p class="f10__tag">TU ESTILO. TU PUNTO.</p></div>';
+  }
+  function f10BoxHTML(c) {
+    if (!F10 || !c.lines.length) return '';
+    var head = '<p class="f10-box__k">🎟️ FIRST 10 <span>' + (F10.agotado ? 'AGOTADO' : 'PROMOCIÓN ACTIVA') + '</span></p>';
+    if (F10.agotado) return '<div class="f10-box f10-box--off">' + head + '<p>🔒 FIRST 10 AGOTADO. ¡Gracias por participar!</p></div>';
+    if (!F10.disponibles) return '<div class="f10-box f10-box--off">' + head + '<p>' + f10Estado() + '</p></div>';
+    if (S.coupon) return '<div class="f10-box f10-box--off">' + head + '<p>FIRST 10 no se acumula con cupones. Si prefieres el descuento de ' + money(F10.valor) + ', quita el cupón ' + esc(S.coupon.code) + '.</p></div>';
+    if (c.sub < F10.minimo) return '<div class="f10-box">' + head + '<p>Agrega <b>' + money(F10.minimo - c.sub) + '</b> más en productos y obtén <b>' + money(F10.valor) + '</b> de descuento por apertura.</p>' +
+      '<div class="f10-meter__bar" aria-hidden="true"><i style="width:' + Math.round(c.sub / F10.minimo * 100) + '%"></i></div><small>' + f10Estado() + '</small></div>';
+    return '<div class="f10-box">' + head + '<p>¡Tu compra puede obtener <b>' + money(c.f10) + '</b> de descuento por apertura!</p>' +
+      '<dl class="f10-box__dl"><div><dt>Subtotal</dt><dd>' + money(c.sub) + '</dd></div><div class="save"><dt>Descuento FIRST 10</dt><dd>−' + money(c.f10) + '</dd></div><div class="tot"><dt>Total de productos</dt><dd>' + money(c.sub - c.f10) + '</dd></div></dl>' +
+      '<small>Sin incluir envío ni caja personalizada. Un descuento por cliente: tu cupo se reserva al registrar el pedido y se confirma con tu pago. ' + f10Estado() + '</small></div>';
+  }
+  function setF10(p) {
+    F10 = p && typeof p === 'object' && p.cupos ? p : null;
+    renderF10Banner();
+    if (stack.indexOf($('cartSheet')) > -1) renderCart();
+    if (stack.indexOf($('coSheet')) > -1 && !$('coStep1').hidden) renderCheckoutSummary();
+  }
+  async function refreshF10() {
+    try { var d = await api('/api/catalog?first10=1'); setF10(d.promoApertura); } catch (e) { }
+  }
+  setInterval(function () { if (F10 && document.visibilityState === 'visible') refreshF10(); }, 60000);
   /* Plazos de entrega en días hábiles por departamento (llegan de /api/catalog → settings.plazos).
      Sin caja sale directo de fábrica; con caja pasa por el taller de Quibdó y tarda más. */
   var PLAZOS = {};
@@ -848,6 +912,7 @@
     applyPendingCoupon();
     prefillProfile();
     renderCheckoutSummary(); showStep(1);
+    if (F10) refreshF10();
     $('orderErr').hidden = true;
     openLayer($('coSheet'), $('fNombre'), replace === true);
   }
@@ -900,10 +965,11 @@
       S.order = {
         numero: d.numero, ultimos4: customer.telefono.slice(-4), nombre: customer.nombre.split(' ')[0], ciudad: customer.ciudad,
         pago: d.pago, entrega: customer.entrega, empaque: customer.empaque, pricing: d.pricing, items: d.items.map(function (i) { return { brand: i.brand, name: i.name, size: i.size, color: i.color, qty: i.qty, price: i.price }; }),
-        createdAt: d.createdAt, step: 'pago', at: Date.now()
+        createdAt: d.createdAt, step: 'pago', at: Date.now(), first10: d.first10 || null
       };
       store.set(K_ORDER, S.order);
       if (d.checkoutUrl) wompiUrl = d.checkoutUrl;
+      if (F10) refreshF10();
       S.cart = []; S.coupon = null; saveCart(); renderCart(); $('couponIn').value = ''; $('couponMsg').textContent = '';
       S.empaque = 'Sin caja'; $('orderForm').reset(); renderCheckoutSummary();
       // Separado (pagar al recoger) o sin nada que pagar ahora: directo a "listo"
@@ -914,7 +980,7 @@
       }
       renderPayment(); showStep(2);
       setTimeout(function () { $('payTitle').setAttribute('tabindex', '-1'); $('payTitle').focus(); }, 50);
-      if (S.order.pago === 'Wompi') goWompi();
+      if (esOnline(S.order.pago)) goWompi();
     } catch (err) {
       $('orderErr').textContent = err instanceof TypeError ? 'No hay conexión. Tu carrito sigue guardado: revisa tu internet e intenta de nuevo.' : err.message;
       $('orderErr').hidden = false; $('orderErr').focus && $('orderErr').setAttribute('tabindex', '-1'); $('orderErr').focus();
@@ -927,13 +993,18 @@
   function renderPayment() {
     var o = S.order, val = payValue();
     $('payNo').textContent = o.numero;
-    var online = o.pago === 'Wompi';
+    var online = esOnline(o.pago);
     $('payWompi').hidden = !online; $('payNequi').hidden = online;
     $('payTitle').textContent = online ? 'Paga en línea' : o.pago === 'Contraentrega' ? 'Paga el domicilio' : 'Paga por transferencia o QR';
     if (!online) renderAccounts();
     if (online) renderWompiState(o.wompiEstado || '');
     $('payAmount').innerHTML = money(val) + '<small>' + (o.pago === 'Contraentrega' ? 'Valor del domicilio. El resto (' + money(o.pricing.saldoContraentrega) + ') lo pagas al recibir.' : o.entrega === 'Recoger' ? 'Total de tu pedido (lo recoges en la tienda)' : o.entrega === 'Domicilio' ? 'Total de tu pedido con domicilio' : 'Total de tu pedido con envío') + '</small>';
     $('payVal').textContent = money(val);
+    // FIRST 10: si se aplicó, el cupo queda reservado hasta que llegue el pago; si no, se explica por qué
+    var f = o.first10;
+    $('payF10').hidden = !(f && (f.aplicado || f.mensaje));
+    if (f && f.aplicado) $('payF10').innerHTML = '<div class="f10-box"><p class="f10-box__k">🎟️ FIRST 10 <span>APLICADO</span></p><p>Ahorraste <b>' + money(f.descuento) + '</b> en este pedido. Tu cupo queda reservado por ' + f.horas + ' horas: paga y envía tu comprobante para conservarlo.</p></div>';
+    else if (f && f.mensaje) $('payF10').innerHTML = '<div class="f10-box f10-box--off"><p class="f10-box__k">🎟️ FIRST 10 <span>NO APLICÓ</span></p><p>' + esc(f.mensaje) + '</p></div>';
     $('payMsg').textContent = o.numero;
     $('payCodNote').hidden = o.pago !== 'Contraentrega';
     $('payCodNote').textContent = o.pricing.freeShipping ? 'Tu pedido tiene domicilio gratis: este valor se descuenta de lo que pagas al recibir.' : 'Este pago cubre el domicilio y confirma tu pedido contraentrega.';
@@ -942,29 +1013,32 @@
     showReceiptPreview(null);
     if (N.pintar) N.pintar();
   }
-  /* ---------------- pago en línea (Wompi) ---------------- */
+  /* ---------------- pago en línea (Mercado Pago; Wompi queda para pedidos viejos) ---------------- */
   var wompiUrl = '';
+  var esOnline = function (pago) { return pago === 'Wompi' || pago === 'MercadoPago'; };
+  var pasarela = function (o) { return o && o.pago === 'MercadoPago' ? { api: '/api/mercadopago', nombre: 'Mercado Pago' } : { api: '/api/wompi', nombre: 'Wompi' }; };
   var WOMPI_TXT = {
-    '': ['Te llevamos a la página segura de Wompi para pagar con tarjeta, PSE, Nequi o Bancolombia.', 'Pagar en línea'],
+    '': ['Te llevamos a la página segura de pago para pagar con tarjeta, PSE u otros medios.', 'Pagar en línea'],
     PENDING: ['Tu pago está en proceso. Si ya lo completaste, espera unos segundos y revisa el estado.', 'Pagar de nuevo'],
     DECLINED: ['El pago fue rechazado. No se te cobró nada: puedes intentarlo de nuevo con otro medio.', 'Intentar de nuevo'],
     VOIDED: ['El pago fue anulado. Puedes intentarlo de nuevo.', 'Intentar de nuevo'],
     ERROR: ['Hubo un error con el pago. No se te cobró nada: puedes intentarlo de nuevo.', 'Intentar de nuevo']
   };
   function renderWompiState(estado) {
-    var t = WOMPI_TXT[estado] || WOMPI_TXT[''];
-    $('wompiMsg').textContent = t[0];
-    $('wompiBtn').lastChild.textContent = t[1];
+    var t = WOMPI_TXT[estado] || WOMPI_TXT[''], pz = pasarela(S.order);
+    $('wompiMsg').textContent = estado ? t[0] : 'Te llevamos a la página segura de ' + pz.nombre + ' para pagar con tarjeta de crédito o débito, PSE u otros medios.';
+    $('wompiBtn').lastChild.textContent = estado ? t[1] : 'Pagar con ' + pz.nombre;
     $('wompiBtn').disabled = false;
-    $('wompiCheck').hidden = !(S.order && S.order.wompiTx);
+    $('onlineNote').textContent = 'Pago procesado por ' + pz.nombre + '. Punto Club no ve ni guarda los datos de tu tarjeta.';
+    $('wompiCheck').hidden = !(S.order && (S.order.wompiTx || (S.order.pago === 'MercadoPago' && S.order.wompiEstado)));
   }
   async function goWompi() {
     var b = $('wompiBtn'); b.disabled = true;
     try {
       var url = wompiUrl;
-      if (!url) url = (await api('/api/wompi', { accion: 'checkout', numero: S.order.numero, ultimos4: S.order.ultimos4 })).checkoutUrl;
+      if (!url) url = (await api(pasarela(S.order).api, { accion: 'checkout', numero: S.order.numero, ultimos4: S.order.ultimos4 })).checkoutUrl;
       wompiUrl = '';
-      paying(false); // sin aviso de "salir de la página": vamos a Wompi y volvemos
+      paying(false); // sin aviso de "salir de la página": vamos a la pasarela y volvemos
       location.href = url;
     } catch (err) {
       b.disabled = false;
@@ -973,9 +1047,12 @@
     }
   }
   $('wompiBtn').addEventListener('click', goWompi);
-  async function verifyWompi(id) {
+  async function verifyWompi(id) { return verifyOnline(function () { return api('/api/wompi', { accion: 'verificar', id: id }); }, id); }
+  /* Mercado Pago: el cliente vuelve con ?mp=…&pedido=…&c=…; la tienda pregunta al servidor, que consulta la API */
+  async function verifyMp(numero, ultimos4) { return verifyOnline(function () { return api('/api/mercadopago', { accion: 'verificar', numero: numero, ultimos4: ultimos4 }); }, ''); }
+  async function verifyOnline(consultar, id) {
     try {
-      var r = await api('/api/wompi', { accion: 'verificar', id: id });
+      var r = await consultar();
       var mine = S.order && S.order.numero === r.numero;
       if (r.estado === 'APPROVED' || r.pedido !== 'Recibido') {
         MP.stale = true;
@@ -985,7 +1062,7 @@
         return;
       }
       if (!mine) { toast('El pago del pedido ' + r.numero + ' quedó ' + (r.estado === 'PENDING' ? 'en proceso.' : 'rechazado.')); return; }
-      S.order.wompiEstado = r.estado; S.order.wompiTx = id; store.set(K_ORDER, S.order);
+      S.order.wompiEstado = r.estado; if (id) S.order.wompiTx = id; store.set(K_ORDER, S.order);
       resumeOrder();
     } catch (err) {
       toast(err instanceof TypeError ? 'No hay conexión para revisar tu pago. Intenta de nuevo.' : err.message);
@@ -993,7 +1070,9 @@
     }
   }
   function checkWompi() {
-    if (S.order && S.order.wompiTx) { if (stack.indexOf($('coSheet')) > -1) closeLayer($('coSheet'), false, true); verifyWompi(S.order.wompiTx); }
+    if (!S.order) return;
+    if (S.order.pago === 'MercadoPago') { if (stack.indexOf($('coSheet')) > -1) closeLayer($('coSheet'), false, true); verifyMp(S.order.numero, S.order.ultimos4); return; }
+    if (S.order.wompiTx) { if (stack.indexOf($('coSheet')) > -1) closeLayer($('coSheet'), false, true); verifyWompi(S.order.wompiTx); }
   }
   $('wompiCheck').addEventListener('click', checkWompi);
 
@@ -1116,6 +1195,7 @@
     if (o.step === 'pagado') $('doneTxt').textContent = 'Gracias, ' + o.nombre + '. Tu pago en línea fue aprobado y ya estamos preparando tu pedido' + (recoge ? ' para que lo recojas en la tienda' : ' para enviarlo') + '. Te escribimos por WhatsApp.';
     else if (o.step === 'separado') $('doneTxt').textContent = 'Gracias, ' + o.nombre + '. ' + (recoge ? 'Tu pedido queda separado a tu nombre. Pagas ' + money(saldo) + ' cuando lo recojas en la tienda.' : 'Tu pedido quedó registrado. Pagas ' + money(saldo) + ' al recibirlo.') + ' Te escribimos por WhatsApp cuando esté listo.';
     else $('doneTxt').textContent = 'Gracias, ' + o.nombre + '. Recibimos ' + (o.comprobante ? 'la foto del comprobante de tu pago' : 'tu pedido') + '. Cuando verifiquemos el pago, tu pedido pasa a “Pago confirmado” y te escribimos por WhatsApp.';
+    if (o.first10 && o.first10.aplicado && o.step !== 'pagado') $('doneTxt').textContent += ' 🎟️ Tu cupo FIRST 10 (' + money(o.first10.descuento) + ' de descuento) queda reservado y se confirma con tu pago.';
     $('doneReceipt').href = l.recibo;
     $('doneProof').hidden = !sentProof;
     if (sentProof) { $('doneProofImg').src = sentProof; $('doneProofDl').href = sentProof; $('doneProofDl').download = 'Comprobante-' + o.numero + '.jpg'; }
@@ -1531,10 +1611,10 @@
     var done = (o.steps || []).filter(function (s) { return s.state === 'done' || s.state === 'current'; }).length;
     return Math.round(done / Math.max(1, (o.steps || []).length) * 100);
   }
-  var PAGO_TXT = { Wompi: 'En línea (Wompi)', Nequi: 'Transferencia o QR', Contraentrega: 'Contraentrega', 'En tienda': 'Al recoger en la tienda' };
+  var PAGO_TXT = { MercadoPago: 'En línea (Mercado Pago)', Wompi: 'En línea (Wompi)', Nequi: 'Transferencia o QR', Contraentrega: 'Contraentrega', 'En tienda': 'Al recoger en la tienda' };
   function stageHint(o) {
     var s = stage(o);
-    if (s === 'pagar' && o.pago === 'Wompi') return 'Paga ' + money(o.pricing.pagarAhora) + ' en línea para confirmarlo.';
+    if (s === 'pagar' && esOnline(o.pago)) return 'Paga ' + money(o.pricing.pagarAhora) + ' en línea para confirmarlo.';
     if (s === 'pagar') return o.pago === 'Contraentrega' ? 'Paga ' + money(o.pricing.pagarAhora) + ' del domicilio por transferencia o QR para confirmarlo.' : 'Paga ' + money(o.pricing.pagarAhora) + ' por transferencia o QR para confirmarlo.';
     if (s === 'proceso' && o.status === 'Recibido' && o.pago === 'En tienda') return 'Separado. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recogerlo en la tienda.';
     if (s === 'proceso' && o.status === 'Recibido' && !o.pagoReportado) return 'Recibimos tu pedido. Pagas ' + money(o.pricing.saldoContraentrega) + ' al recibirlo.';
@@ -1641,17 +1721,20 @@
     $('ordDetail').innerHTML =
       '<div class="od-hero od-hero--' + s + '">' + stageArt(s) + '<span class="st st--' + s + '">' + STAGE_TXT[s] + '</span><h3>' + esc(o.statusLabel) + '</h3><p>' + esc(stageHint(o)) + '</p>' +
       (s !== 'cancelado' ? '<div class="oc__bar"><i style="--w:' + progress(o) + '%"></i></div>' : '') +
-      (s === 'pagar' ? '<button type="button" class="btn btn-lime btn-block" data-pay="' + esc(o.numero) + '">Pagar ' + money(p.pagarAhora) + (o.pago === 'Wompi' ? ' en línea' : '') + '</button>' : '') + '</div>' +
+      (s === 'pagar' ? '<button type="button" class="btn btn-lime btn-block" data-pay="' + esc(o.numero) + '">Pagar ' + money(p.pagarAhora) + (esOnline(o.pago) ? ' en línea' : '') + '</button>' : '') + '</div>' +
       (s !== 'cancelado' ? '<section class="od-sec"><h4>Seguimiento</h4><ol class="tl" aria-label="Estados del pedido">' + steps + '</ol></section>' : '') +
       shipCardHTML(o) +
       (isActive(o) ? '<div data-push-slot>' + pushCardHTML(false) + '</div>' : '') +
       reviewSecHTML(o) +
       (o.nota ? '<div class="od-note"><b>Mensaje de la tienda:</b> ' + esc(o.nota) + '</div>' : '') +
-      (o.premio ? '<div class="od-note od-premio"><b>🎁 ¡Ganaste la promo de apertura!</b> Tienes ' + money(o.premio.valor) + ' de descuento en tu próxima compra' + (o.premio.minimo ? ' desde ' + money(o.premio.minimo) : '') + '. Cupón <b class="od-premio__code">' + esc(o.premio.code) + '</b>, un solo uso, válido hasta el ' + esc(new Date(o.premio.vence).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })) + '.<button type="button" class="btn btn-primary btn-sm" data-cup-use="' + esc(o.premio.code) + '">Usar en mi próxima compra</button></div>' : '') +
+      (p.first10 && o.status !== 'Cancelado' ? (o.status === 'Recibido'
+        ? '<div class="od-f10"><p><b>🎟️ FIRST 10 reservado</b></p><p>Tu cupo de ' + money(p.first10) + ' de descuento queda reservado. Se confirma cuando verifiquemos tu pago.</p></div>'
+        : '<div class="od-f10"><p><b>🎉 ¡FELICIDADES! ERES PARTE DEL FIRST 10.</b></p><p>Tu pedido ha sido confirmado y recibiste ' + money(p.first10) + ' de descuento por ser uno de nuestros primeros ' + (F10 ? F10.cupos : 10) + ' compradores.</p><p>Gracias por confiar en PUNTO CLUB desde el primer día. 🟢👟</p><p class="od-f10__tag">TU ESTILO. TU PUNTO.</p></div>') : '') +
       (o.pagoReportado && o.pagoReportado.hasComprobante ? '<section class="od-sec" id="odProof"><h4>Tu comprobante</h4><p class="hint">Cargando…</p></section>' : '') +
       '<section class="od-sec"><h4>Productos</h4>' + items +
       '<div class="totals od-tot">' + (p.promoSavings ? '<div class="save"><span>Promociones</span><span>-' + money(p.promoSavings) + '</span></div>' : '') +
       (p.discount ? '<div class="save"><span>Cupón ' + esc(p.couponCode) + '</span><span>-' + money(p.discount) + '</span></div>' : '') +
+      (p.first10 ? '<div class="save"><span>Descuento FIRST 10</span><span>-' + money(p.first10) + '</span></div>' : '') +
       (p.envio != null ? '<div><span>' + (o.entrega === 'Recoger' ? 'Recoger en tienda' : o.entrega === 'Domicilio' ? 'Domicilio' : 'Envío nacional') + '</span><span>' + (p.envio ? money(p.envio) : 'Gratis') + '</span></div>' : '') +
       (p.caja ? '<div><span>Caja personalizada</span><span>' + money(p.caja) + '</span></div>' : '') +
       '<div class="grand"><span>Total</span><span>' + money(p.totalConEnvio) + '</span></div>' +
@@ -1768,9 +1851,11 @@
     if (s.pagos && Array.isArray(s.pagos.cuentas) && s.pagos.cuentas.length) { CUENTAS = s.pagos.cuentas; if (S.order && !$('coStep2').hidden) renderAccounts(); }
     if (s.envio != null && isFinite(s.envio)) { ENVIO = Number(s.envio); renderCart(); if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
     if (Array.isArray(s.departamentos) && s.departamentos.length) { DEPTOS = s.departamentos; renderDeptos(); }
-    PROMO_AP = s.promoApertura && s.promoApertura.quedan > 0 ? s.promoApertura : null;
+    setF10(s.promoApertura);
     if (s.plazos && typeof s.plazos === 'object') { PLAZOS = s.plazos; if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
-    // Wompi está en pausa: la tienda solo ofrece transferencia o QR (cuentas configuradas en el panel)
+    // Pago en línea con Mercado Pago (si está configurado en el servidor); Wompi sigue en pausa
+    $('payMpOpt').hidden = !s.mercadopago;
+    if (!s.mercadopago && currentPago() === 'MercadoPago') document.querySelector('input[name="pago"][value="Nequi"]').checked = true;
     if (typeof s.push === 'string' && s.push !== PUSH_KEY) { PUSH_KEY = s.push; renderPushSlots(); syncPush(); }
     var m = encodeURIComponent('Hola Punto Club, quiero hacer una consulta.');
     $('waHelp').href = 'https://wa.me/' + WA + '?text=' + m;
@@ -1841,7 +1926,10 @@
     var wantOrders = location.hash === '#pedidos' || !!lnkNum;
     if (lnkNum && /^(PC|KS)-\d{8}-\d{4}$/.test(lnkNum) && /^\d{4}$/.test(lnkCel)) rememberOrder(lnkNum, lnkCel);
     var wompiTx = qs.get('wompi') ? String(qs.get('id') || '').slice(0, 64) : '';
-    if (wantOrders || qs.get('wompi')) { try { history.replaceState(null, '', location.pathname); } catch (e) { } }
+    var mpVuelta = !!qs.get('mp') && /^(PC|KS)-\d{8}-\d{4}$/.test(lnkNum) && /^\d{4}$/.test(lnkCel);
+    if (wantOrders || qs.get('wompi') || qs.get('mp')) { try { history.replaceState(null, '', location.pathname); } catch (e) { } }
+    // Volvió de pagar en Mercado Pago: se consulta el resultado real del pago (nunca se cree en la URL)
+    if (mpVuelta) { verifyMp(lnkNum, lnkCel); return; }
     // Volvió de pagar en Wompi: se consulta el resultado real del pago
     if (wompiTx) { verifyWompi(wompiTx); return; }
     // Volvió después de una recarga o de cambiar a Nequi: lo llevamos directo al pago

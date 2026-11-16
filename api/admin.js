@@ -254,7 +254,10 @@ module.exports = async (req, res) => {
         const p = promoApertura.sanitize(body.promoApertura);
         const e = await promoApertura.estado(supabase);
         if (!e.listo) return err(res, 'Falta preparar la base: ejecuta lib/migracion-promo-apertura-2026-11.sql en Supabase.', 500);
-        if (p.activa && e.entregados >= p.cupos) return err(res, `Ya se entregaron ${e.entregados} premios. Sube el número de cupos para volver a activarla.`, 400);
+        if (p.cupos < e.confirmados + e.reservados) return err(res, `Ya hay ${e.confirmados + e.reservados} cupos ocupados (confirmados o reservados). No puedes poner menos cupos que eso.`, 400);
+        if (p.activa && e.confirmados >= p.cupos) return err(res, `Ya se confirmaron los ${e.confirmados} cupos (FIRST 10 agotado). Sube el número de cupos para volver a activarla.`, 400);
+        try { await promoApertura.prepararCupos(supabase, p.cupos); }
+        catch (ce) { return err(res, 'Falta preparar la base: ejecuta lib/migracion-promo-apertura-2026-11.sql en Supabase. (' + ce.message + ')', 500); }
         update.promo_apertura = { ...p, cerradaAuto: false };
       }
       if (body.adminPassword) {
@@ -440,24 +443,19 @@ module.exports = async (req, res) => {
         up = await supabase.from('orders').update({ status, customer: { ...o.customer, tracking }, updated_at: at }).eq('id', id).select().single();
       }
       if (up.error) return err(res, up.error.message, 500);
-      let d = up.data;
-      /* Promo de apertura: el pedido gana su cupón al confirmar el pago; si se cancela, se anula */
-      let premio = null;
-      if (status !== prev && promoApertura.PAGADOS.includes(status)) {
-        premio = await promoApertura.premiar(supabase, d);
-        if (premio) d = { ...d, customer: { ...(d.customer || {}), premioApertura: premio.premio } };
-      } else if (status !== prev && status === 'Cancelado') {
-        const r = await promoApertura.anular(supabase, d);
-        if (r) d = { ...d, customer: { ...(d.customer || {}), premioApertura: { ...d.customer.premioApertura, anulado: true } } };
-      }
+      const d = up.data;
+      /* FIRST 10: al confirmar el pago el cupo reservado queda confirmado; si se cancela, se libera */
+      let first10 = null;
+      if (status !== prev && promoApertura.PAGADOS.includes(status) && !promoApertura.PAGADOS.includes(prev)) first10 = await promoApertura.confirmar(supabase, d);
+      else if (status !== prev && status === 'Cancelado') first10 = await promoApertura.liberarPedido(supabase, d);
       /* Aviso al celular del cliente: si cambió el estado, o si se agregó/cambió la guía */
       let avisos = null;
       const guiaNueva = tracking.guia && tracking.guia !== t.guia;
       if (pushReady() && (status !== prev || guiaNueva)) {
-        try { avisos = await notifyOrder(supabase, d, status, tracking, { soloGuia: status === prev, premio: premio && premio.premio }); }
+        try { avisos = await notifyOrder(supabase, d, status, tracking, { soloGuia: status === prev, first10: !!(first10 && first10.confirmado) }); }
         catch (e) { console.error('[push] aviso del pedido', id, e.message); avisos = 0; }
       }
-      return ok(res, { ...d, status: normalizeStatus(d.status), tracking: trackingOf(d), pricing: d.pricing || (d.customer && d.customer.pricing) || null, avisos, premio });
+      return ok(res, { ...d, status: normalizeStatus(d.status), tracking: trackingOf(d), pricing: d.pricing || (d.customer && d.customer.pricing) || null, avisos, first10 });
     }
     if (method === 'DELETE' && id) {
       const { error } = await supabase.from('orders').delete().eq('id', id);

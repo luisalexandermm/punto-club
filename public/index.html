@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Punto Club">
 <link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/store.css?v=29">
+<link rel="stylesheet" href="css/store.css?v=30">
 <link rel="stylesheet" href="css/apertura.css?v=2">
 <script src="js/arranque.js"></script>
 <noscript><style>.k-loader{display:none!important}html.k-loading body{overflow:auto}</style></noscript>
@@ -144,6 +144,9 @@
         <button type="button" class="car-arrow" id="carNext" aria-label="Diapositiva siguiente" hidden><svg aria-hidden="true"><use href="#i-arrow"/></svg></button>
       </div>
     </section>
+
+    <!-- FIRST 10: promoción de apertura (la arma tienda.js con los cupos en vivo) -->
+    <section class="f10" id="f10" aria-labelledby="f10T" hidden></section>
 
     <ul class="perks" aria-label="Por qué comprar en Punto Club">
       <li><svg aria-hidden="true"><use href="#i-truck"/></svg><span><b>Envíos a toda Colombia</b>Con número de guía</span></li>
@@ -300,6 +303,7 @@
       <button class="btn btn-line" type="submit" id="couponBtn">Aplicar</button>
     </form>
     <p class="coupon-msg" id="couponMsg" role="status" aria-live="polite"></p>
+    <div id="cartF10"></div>
     <div class="totals" id="cartTotals"></div>
     <button type="button" class="btn btn-primary btn-block" id="toCheckout" disabled>Continuar con la compra</button>
     <p class="mini-note">En el siguiente paso eliges el empaque: sin caja o con caja personalizada.</p>
@@ -315,7 +319,7 @@
   <!-- Paso 1 -->
   <div class="sheet__body" id="coStep1">
     <div class="summary" id="coSummary"></div>
-    <p class="promo-ap" id="promoAp" hidden></p>
+    <div id="coF10"></div>
     <form id="orderForm" novalidate>
       <p class="hint" style="font-size:.84rem;color:var(--muted);margin-bottom:10px">Los campos con <span aria-hidden="true">*</span><span class="sr-only">asterisco</span> son obligatorios.</p>
       <p class="notice-box"><svg aria-hidden="true"><use href="#i-truck"/></svg><span><b>Enviamos a toda Colombia</b> por transportadora. Envío nacional: <b id="envioTxt">$25.000</b>. Despachamos cuando confirmamos tu pago y te mandamos el número de guía.</span></p>
@@ -343,6 +347,7 @@
         <legend>Forma de pago</legend>
         <div class="pay" id="payOpts">
           <label><input type="radio" name="pago" value="Nequi" checked><b>Transferencia o QR</b><small id="payNequiTxt">Pagas desde la app de cualquier banco. Pagas todo ahora.</small></label>
+          <label id="payMpOpt" hidden><input type="radio" name="pago" value="MercadoPago"><b>Mercado Pago</b><small>Tarjeta de crédito o débito, PSE y otros medios, en la página segura de Mercado Pago. Tu pedido se confirma solo.</small></label>
         </div>
       </fieldset>
       <div class="field"><label for="fNotas">Notas</label><textarea id="fNotas" maxlength="500" placeholder="Punto de referencia, horario en que te encuentran…"></textarea></div>
@@ -363,11 +368,12 @@
       <p class="lock-note"><svg aria-hidden="true"><use href="#i-lock"/></svg><span>Tu pedido <b id="payNo"></b> ya está guardado</span></p>
       <h3 id="payTitle">Paga por transferencia o QR</h3>
       <p class="pay-amount" id="payAmount"></p>
+      <div id="payF10" hidden></div>
       <div id="payWompi" hidden>
-        <p id="wompiMsg">Te llevamos a la página segura de Wompi para pagar con tarjeta, PSE, Nequi o Bancolombia.</p>
+        <p id="wompiMsg">Te llevamos a la página segura de pago.</p>
         <button type="button" class="btn btn-primary btn-block" id="wompiBtn"><svg aria-hidden="true"><use href="#i-lock"/></svg>Pagar en línea</button>
         <button type="button" class="btn btn-line btn-block" id="wompiCheck" hidden>Ya pagué, revisar estado</button>
-        <p class="mini-note">Pago procesado por Wompi (Bancolombia). Punto Club no ve ni guarda los datos de tu tarjeta.</p>
+        <p class="mini-note" id="onlineNote">Punto Club no ve ni guarda los datos de tu tarjeta.</p>
       </div>
       <div id="payNequi">
       <p class="acct-q" id="acctQ">¿Desde qué app vas a pagar?</p>
@@ -444,7 +450,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="js/apertura.js?v=2"></script>
-<script src="js/tienda.js?v=36"></script>
+<script src="js/tienda.js?v=38"></script>
 <script src="js/pwa.js"></script>
 </body>
 </html>

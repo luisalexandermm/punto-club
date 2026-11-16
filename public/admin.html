@@ -185,19 +185,19 @@
         <button class="btn btn-primary" type="submit">Guardar envío</button>
       </form>
       <form class="panel dom-panel" id="apForm" novalidate>
-        <h2>🎁 Promo de apertura</h2>
-        <p class="hint">Los primeros pedidos con <b>pago confirmado</b> ganan un cupón de un solo uso para su próxima compra. El cupón se crea solo cuando cambias el pedido a “Pago confirmado”, y aparece en el pedido del cliente, en el aviso al celular y en el mensaje de WhatsApp. Cuando se entrega el último premio, la promo <b>se apaga sola</b>. Si cancelas un pedido premiado y su cupón no se ha usado, el cupón se anula y el cupo vuelve a quedar libre.</p>
-        <p class="ref-box" id="apWarn" hidden>Para usarla, primero ejecuta <code>lib/migracion-promo-apertura-2026-11.sql</code> en el editor SQL de Supabase.</p>
+        <h2>🎟️ FIRST 10 · Promo de apertura</h2>
+        <p class="hint">Los primeros clientes con <b>pago confirmado</b> reciben un descuento automático en su compra, sin código, si sus productos suman la compra mínima. No aplica al envío ni a la caja, no se acumula con cupones y es uno por cliente (por celular).<br>Al registrar el pedido se <b>reserva</b> un cupo; se <b>confirma</b> cuando pasas el pedido a “Pago confirmado”. Si cancelas el pedido, o el cliente no reporta su pago en las horas de reserva, el cupo se libera. Cuando se confirma el último, la tienda muestra <b>FIRST 10 AGOTADO</b>.</p>
+        <p class="ref-box" id="apWarn" hidden>Para usar FIRST 10, primero ejecuta <code>lib/migracion-promo-apertura-2026-11.sql</code> en el editor SQL de Supabase.</p>
         <p class="ap-count" id="apCount" aria-live="polite"></p>
-        <label class="check"><input type="checkbox" id="apOn"> Promo activa (se muestra en la tienda)</label>
+        <label class="check"><input type="checkbox" id="apOn"> FIRST 10 activa (se muestra en la tienda y descuenta)</label>
         <div class="ap-grid">
-          <div class="field"><label for="apCupos">Pedidos que ganan</label><input id="apCupos" type="number" inputmode="numeric" min="1" max="500"></div>
-          <div class="field"><label for="apValor">Valor del cupón ($)</label><input id="apValor" type="number" inputmode="numeric" min="1000" max="500000" step="1000"></div>
-          <div class="field"><label for="apMin">Compra mínima para usarlo ($)</label><input id="apMin" type="number" inputmode="numeric" min="0" step="1000"></div>
-          <div class="field"><label for="apDias">Días para usarlo</label><input id="apDias" type="number" inputmode="numeric" min="1" max="365"></div>
+          <div class="field"><label for="apCupos">Cupos</label><input id="apCupos" type="number" inputmode="numeric" min="1" max="100"></div>
+          <div class="field"><label for="apValor">Descuento ($)</label><input id="apValor" type="number" inputmode="numeric" min="1000" max="500000" step="1000"></div>
+          <div class="field"><label for="apMin">Compra mínima en productos ($)</label><input id="apMin" type="number" inputmode="numeric" min="0" step="1000"></div>
+          <div class="field"><label for="apHoras">Horas de reserva sin pago</label><input id="apHoras" type="number" inputmode="numeric" min="1" max="168"></div>
         </div>
         <div id="apList"></div>
-        <button class="btn btn-primary" type="submit">Guardar promo</button>
+        <button class="btn btn-primary" type="submit">Guardar FIRST 10</button>
       </form>
       <form class="panel dom-panel" id="acctForm" novalidate>
         <h2>Cuentas para recibir pagos</h2>
@@ -285,6 +285,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/admin.js?v=29"></script>
+<script src="/js/admin.js?v=31"></script>
 </body>
 </html>

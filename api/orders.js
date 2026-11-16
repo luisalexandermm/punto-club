@@ -12,12 +12,15 @@ const { sendWhatsApp, adminWhatsApp } = require('../lib/whatsapp');
 const { notifyAdmins } = require('../lib/push');
 const { limitar, demasiados } = require('../lib/limite');
 const { empaqueDe, valorCaja } = require('../lib/empaque');
+const first10 = require('../lib/promo-apertura');
+const mp = require('../lib/mercadopago');
 
 /* Por ahora Punto Club solo hace envíos nacionales por transportadora y solo recibe
    pagos por transferencia o QR (a Nequi o llave Bre-B). Wompi queda en pausa: su código
    sigue en lib/wompi.js y api/wompi.js para los pedidos viejos que lo usaron. */
 const ENTREGAS = ['Nacional'];
-const PAGOS = ['Nequi'];
+/* "MercadoPago": pago en línea (tarjeta, PSE…) con Checkout Pro; solo si MP_ACCESS_TOKEN está configurado */
+const pagosActivos = () => mp.mpReady() ? ['Nequi', 'MercadoPago'] : ['Nequi'];
 const money = n => '$' + Number(n || 0).toLocaleString('es-CO');
 
 /* Celular colombiano: 10 dígitos que empiezan por 3 (se acepta con 57 adelante) */
@@ -33,9 +36,12 @@ function receiptText(numero, items, customer, pricing) {
   if (pricing.promoSavings) extra.push(`Ahorro por promociones: -${money(pricing.promoSavings)}`);
   if (pricing.segunda) extra.push(`(incluye ${pricing.segunda.title}: -${money(pricing.segunda.savings)})`);
   if (pricing.coupon) extra.push(`Cupón ${pricing.coupon.code}: -${money(pricing.coupon.discount)}`);
+  if (pricing.first10) extra.push(`Descuento FIRST 10 (apertura): -${money(pricing.first10.descuento)}`);
   extra.push(`Envío nacional: ${pricing.envio ? money(pricing.envio) : 'gratis'}`);
   if (pricing.caja) extra.push(`Caja personalizada: ${money(pricing.caja)}`);
-  const pago = `Pago por transferencia o QR: ${money(pricing.pagarAhora)}. Envíanos el comprobante.`;
+  const pago = customer.pago === 'MercadoPago'
+    ? `Pago en línea con Mercado Pago: ${money(pricing.pagarAhora)}.`
+    : `Pago por transferencia o QR: ${money(pricing.pagarAhora)}. Envíanos el comprobante.`;
   const entrega = `Envío a: ${customer.direccion}${customer.barrio ? ', ' + customer.barrio : ''}, ${customer.ciudad}, ${customer.departamento}`;
   return `Punto Club — Pedido ${numero}\n\n${lines}\n\n${extra.join('\n')}\nTotal: ${money(pricing.totalConEnvio)}\n${pago}\n` +
     `${entrega}\n` + (customer.empaque === 'Con caja'
@@ -70,7 +76,7 @@ module.exports = async (req, res) => {
     ciudad: cleanText(c.ciudad, 80),
     departamento: departamento(c.departamento),
     notas: cleanText(c.notas, 500),
-    pago: PAGOS.includes(c.pago) ? c.pago : null,
+    pago: pagosActivos().includes(c.pago) ? c.pago : null,
     entrega: 'Nacional',
     empaque: empaqueDe(c.empaque)
   };
@@ -86,7 +92,7 @@ module.exports = async (req, res) => {
   if (customer.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.correo)) return err(res, 'El correo no es válido', 400);
   /* Plazo estimado que se le promete al cliente: queda guardado con el pedido */
   customer.plazo = plazoEntrega(customer.departamento, customer.empaque);
-  if (!customer.pago) return err(res, 'Por ahora solo recibimos pagos por transferencia o QR. Recarga la página.', 400);
+  if (!customer.pago) return err(res, mp.mpReady() ? 'Elige cómo vas a pagar. Si no ves las opciones, recarga la página.' : 'Por ahora solo recibimos pagos por transferencia o QR. Recarga la página.', 400);
 
   /* Freno contra pedidos falsos en serie (scripts o la consola del navegador) */
   if (await limitar(supabase, req, 'pedido', 8, 60)) return demasiados(res, 60, 'Has enviado muchos pedidos seguidos. Si necesitas ayuda, escríbenos por WhatsApp.');
@@ -100,14 +106,20 @@ module.exports = async (req, res) => {
   const envio = r.freeShipping ? 0 : tarifa;
   /* Caja personalizada: valor fijo por cada par (lo decide el servidor, no el navegador) */
   const caja = valorCaja(customer.empaque, r.items);
-  const totalConEnvio = r.total + envio + caja;
+  /* FIRST 10: si cumple, se reserva un cupo (se confirma cuando se confirme el pago).
+     Solo descuenta sobre los productos: nunca sobre el envío ni la caja. No se acumula con cupones. */
+  const f10 = await first10.reservar(supabase, { telefono: customer.telefono, subtotal: r.subtotal, conCupon: !!r.coupon });
+  const descF10 = f10.aplica ? Math.min(f10.valor, r.total) : 0;
+  const totalProductos = r.total - descF10;
+  const totalConEnvio = totalProductos + envio + caja;
   const pagarAhora = totalConEnvio, saldoContraentrega = 0;
   const pricing = {
     listSubtotal: r.listSubtotal, promoSavings: r.promoSavings, segunda: r.segunda, subtotal: r.subtotal,
     coupon: r.coupon ? { code: r.coupon.code, description: r.coupon.description, discount: r.coupon.discount, freeShipping: r.coupon.freeShipping } : null,
+    first10: descF10 ? { descuento: descF10 } : null,
     freeShipping: r.freeShipping, shippingPromo: r.shippingPromo,
     entrega: 'Nacional', tarifaEnvio: tarifa, empaque: customer.empaque, caja,
-    envio, total: r.total, totalConEnvio, pagarAhora, saldoContraentrega
+    envio, total: totalProductos, totalConEnvio, pagarAhora, saldoContraentrega
   };
   customer.consent = {
     terminos: true, datos: true, marketing: consent.marketing === true,
@@ -130,9 +142,26 @@ module.exports = async (req, res) => {
     if (!error) saved = true;
     else if (!/duplicate|unique/i.test(error.message)) { lastError = error; break; }
   }
+  if (f10.aplica) {
+    if (saved) await first10.asignar(supabase, f10.token, numero);
+    else await first10.soltar(supabase, f10.token);
+  }
   if (!saved) {
     console.error('Pedido no guardado:', lastError && lastError.message);
     return err(res, 'No se pudo guardar el pedido. Intenta de nuevo o escríbenos por WhatsApp.', 500);
+  }
+
+  /* 4b. Pago en línea: se crea la orden en Mercado Pago. Si falla, el pedido queda guardado
+     y el cliente puede reintentar desde el paso de pago (botón "Pagar con Mercado Pago"). */
+  let checkoutUrl = null;
+  if (customer.pago === 'MercadoPago') {
+    try {
+      const orden = await mp.crearOrden(req, { numero, amount: pagarAhora, customer });
+      checkoutUrl = orden.url;
+      // Se parte del customer guardado (en bases viejas lleva dentro pricing y tracking)
+      const { data: guardado } = await supabase.from('orders').select('customer').eq('id', numero).maybeSingle();
+      await supabase.from('orders').update({ customer: { ...((guardado && guardado.customer) || customer), mercadopago:{ orderId: orden.id, status: 'created', estado: 'PENDING', at: new Date().toISOString() } } }).eq('id', numero);
+    } catch (e) { console.error('[mercadopago] crear orden', numero, e.message); }
   }
 
   /* 5. Uso del cupón (optimista: si dos pedidos llegan a la vez, se cuenta el último valor leído + 1) */
@@ -154,7 +183,8 @@ module.exports = async (req, res) => {
   ok(res, {
     ok: true, id: numero, numero, createdAt: now,
     items: items_, pricing, pago: customer.pago,
-    checkoutUrl: null,
+    first10: f10.aplica ? { aplicado: true, descuento: descF10, horas: f10.horas } : { aplicado: false, mensaje: f10.mensaje || '' },
+    checkoutUrl,
     adminNotified, customerNotified
   }, 201);
 };

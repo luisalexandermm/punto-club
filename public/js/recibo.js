@@ -31,6 +31,7 @@
     var foot = '<tr><td colspan="3">Subtotal productos</td><td class="num">' + money(sub) + '</td></tr>';
     if (d.promoSavings) foot += '<tr><td colspan="3">Ahorro por promociones (ya incluido en los precios)</td><td class="num">-' + money(d.promoSavings) + '</td></tr>';
     if (d.discount) foot += '<tr><td colspan="3">Cupón ' + esc(d.couponCode) + '</td><td class="num">-' + money(d.discount) + '</td></tr>';
+    if (d.first10) foot += '<tr><td colspan="3">Descuento FIRST 10 (promoción de apertura)</td><td class="num">-' + money(d.first10) + '</td></tr>';
     if (d.envio != null) foot += '<tr><td colspan="3">' + (d.entrega === 'Recoger' ? 'Recoger en la tienda' : d.entrega === 'Domicilio' ? 'Domicilio' : 'Envío nacional') + '</td><td class="num">' + (d.envio ? money(d.envio) : 'Gratis') + '</td></tr>';
     if (d.caja) foot += '<tr><td colspan="3">Caja personalizada</td><td class="num">' + money(d.caja) + '</td></tr>';
     foot += '<tr class="grand"><td colspan="3">Total</td><td class="num">' + money(d.totalConEnvio) + '</td></tr>';

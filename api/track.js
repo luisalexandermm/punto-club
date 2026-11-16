@@ -123,6 +123,8 @@ module.exports = async (req, res) => {
       await removeReceipt(uploadedPath, 'Comprobante huérfano no eliminado:');
       return err(res, 'No se pudo registrar el reporte. Escríbenos por WhatsApp.', 500);
     }
+    // FIRST 10: con el pago reportado, la reserva del cupo ya no vence sola
+    if (pricing.first10) await require('../lib/promo-apertura').pagoReportado(supabase, numero);
     if (uploadedPath && previousPath && previousPath !== uploadedPath) await removeReceipt(previousPath, 'Comprobante anterior no eliminado:');
     return ok(res, { ok: true, reportadoEn: at, comprobanteRecibido: !!(uploadedPath || previousPath) });
   }
@@ -166,6 +168,7 @@ module.exports = async (req, res) => {
     items: (o.items || []).map(i => ({ brand: i.brand, name: i.name, size: i.size, color: i.color, qty: i.qty, price: i.price, listPrice: i.listPrice, image: i.image || '' })),
     discount: pricing.coupon ? pricing.coupon.discount : 0,
     couponCode: pricing.coupon ? pricing.coupon.code : '',
+    first10: pricing.first10 ? pricing.first10.descuento : 0,
     promoSavings: pricing.promoSavings || 0,
     envio: pricing.envio != null ? pricing.envio : null,
     caja: pricing.caja || 0,

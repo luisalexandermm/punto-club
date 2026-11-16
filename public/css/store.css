@@ -4110,30 +4110,209 @@ mark.pendiente {
   font-size: .88rem;
 }
 
-.promo-ap {
-  background: #f1f8d8;
-  border: 1px solid #d5e8a0;
-  border-radius: 14px;
-  padding: 10px 12px;
-  margin: 10px 0;
+/* ---------- FIRST 10: promoción de apertura (negro, blanco y verde lima) ---------- */
+.f10 {
+  margin: 18px 0 6px;
+  border-radius: 24px;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 90% 0%, rgba(198, 255, 61, .22), transparent 55%),
+    radial-gradient(80% 70% at 0% 100%, rgba(198, 255, 61, .12), transparent 60%),
+    #0b0b0b;
+  border: 1px solid rgba(198, 255, 61, .38);
+  box-shadow: 0 18px 50px -22px rgba(198, 255, 61, .45);
+  overflow: hidden;
+}
+
+.f10__in {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+  padding: 26px 20px;
+}
+
+.f10__kick {
+  justify-self: start;
+  border: 1px solid var(--lime);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--lime);
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.f10__t {
+  font-size: clamp(1.55rem, 6vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+}
+
+.f10__t span {
+  color: var(--lime);
+  text-shadow: 0 0 18px rgba(198, 255, 61, .45);
+}
+
+.f10__lead {
+  color: #dcdfd6;
+  max-width: 56ch;
+}
+
+.f10__list {
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+}
+
+.f10-meter {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.f10-meter__st {
+  font-weight: 800;
+}
+
+.f10-meter__bar {
+  height: 10px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .14);
+  overflow: hidden;
+}
+
+.f10-meter__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--lime);
+  box-shadow: 0 0 12px rgba(198, 255, 61, .7);
+  transition: width .6s ease;
+}
+
+.f10-meter__n {
+  color: #c9ccc4;
+  font-size: .85rem;
+}
+
+.f10__cta {
+  justify-self: start;
+  background: var(--lime);
+  color: #0b0b0b;
+  font-weight: 900;
+  white-space: normal;
+  text-align: center;
+}
+
+.f10__cta:hover {
+  background: #d8ff70;
+  color: #0b0b0b;
+}
+
+.f10__fine {
+  color: #a9ada3;
+  font-size: .75rem;
+  line-height: 1.45;
+}
+
+.f10__tag {
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .3em;
+  opacity: .85;
+}
+
+.f10--off .f10__t span {
+  color: #a7ad9f;
+  text-shadow: none;
+}
+
+/* Cuadro en el carrito, en el checkout y al pagar */
+.f10-box,
+.od-f10 {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(198, 255, 61, .45);
+  border-radius: 16px;
+  background: #0b0b0b;
+  color: #fff;
   font-size: .88rem;
   line-height: 1.45;
 }
 
-.od-premio {
-  display: grid;
-  gap: 8px;
-  border: 1px solid #d5e8a0;
-  background: #f6fbe6;
-}
-
-.od-premio__code {
-  font-family: ui-monospace, Consolas, monospace;
+.f10-box__k {
+  color: var(--lime);
+  font-weight: 900;
   letter-spacing: .04em;
 }
 
-.od-premio .btn {
-  justify-self: start;
+.f10-box__k span {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--lime);
+  color: #0b0b0b;
+  font-size: .68rem;
+  vertical-align: 1px;
+}
+
+.f10-box--off .f10-box__k span {
+  background: #3a3a3a;
+  color: #e6e6e1;
+}
+
+.f10-box__dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.f10-box__dl .save dd {
+  color: var(--lime);
+  font-weight: 800;
+}
+
+.f10-box__dl .tot {
+  border-top: 1px solid rgba(255, 255, 255, .16);
+  margin-top: 2px;
+  padding-top: 4px;
+  font-weight: 800;
+}
+
+.f10-box small {
+  color: #b9bdb2;
+  font-size: .75rem;
+}
+
+.od-f10 b {
+  color: var(--lime);
+}
+
+.od-f10__tag {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .3em;
+  opacity: .85;
+}
+
+@media (min-width: 760px) {
+  .f10__in {
+    padding: 34px 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .f10-meter__bar i {
+    transition: none;
+  }
 }
 
 .od-note {

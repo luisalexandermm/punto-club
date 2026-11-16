@@ -72,6 +72,7 @@ http.createServer(async (req, res) => {
       else if (path_ === '/api/pqr')           return await handler('pqr')(req, res);
       else if (path_ === '/api/mis-pedidos')   return await handler('mis-pedidos')(req, res);
       else if (path_ === '/api/wompi')         return await handler('wompi')(req, res);
+      else if (path_ === '/api/mercadopago')   return await handler('mercadopago')(req, res);
       else if (path_ === '/api/push')          return await handler('push')(req, res);
       else if (path_ === '/api/opiniones')     return await handler('opiniones')(req, res);
       else if (path_.startsWith('/api/admin')) return await handler('admin')(req, res);

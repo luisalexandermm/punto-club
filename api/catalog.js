@@ -11,6 +11,13 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return err(res, 'Método no permitido', 405);
 
+  /* Contador de FIRST 10 en vivo (la tienda lo vuelve a pedir cada minuto) */
+  if (req.query && req.query.first10) {
+    res.setHeader('Cache-Control', 'no-store');
+    if (require('../lib/apertura').cerrada()) return ok(res, { promoApertura: null });
+    return ok(res, { promoApertura: await require('../lib/promo-apertura').publico(supabase) });
+  }
+
   /* Antes de la gran apertura no sale ningún producto ni precio: ni en la página ni en la consola.
      El administrador con sesión abierta sí ve todo (botón "Ver tienda" del panel) para revisar. */
   const apertura = require('../lib/apertura').cerrada();
@@ -102,9 +109,10 @@ module.exports = async (req, res) => {
       // Días hábiles estimados por departamento: sin caja (sale de Cali) y con caja (pasa por Quibdó)
       plazos: tablaPlazos(),
       wompi: false,
+      mercadopago: require('../lib/mercadopago').mpReady(), // pago en línea con Mercado Pago (Checkout Pro)
       push: require('../lib/push').pushReady() ? require('../lib/push').PUBLIC_KEY : '',
       pagos: require('../lib/cuentas').sanitize(settings.pagos),
-      // Promo de apertura: { cupos, quedan, valor, minimo, dias } o null si está apagada o ya se acabó
+      // FIRST 10: { cupos, disponibles, confirmados, reservados, valor, minimo, horas, agotado } o null si está apagada
       promoApertura: await require('../lib/promo-apertura').publico(supabase),
       previa: previa ? apertura : undefined
     },
