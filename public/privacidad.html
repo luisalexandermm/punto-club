@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="/css/legal.css?v=3">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0e0e0e">
-<script src="/js/negocio.js"></script>
+<script src="/js/negocio.js?v=5"></script>
 <script src="/js/pwa.js" defer></script>
 </head>
 <body>
@@ -52,7 +52,7 @@
 
   <section id="datos" aria-labelledby="h-datos">
     <h2 id="h-datos">2. Qué datos recogemos</h2>
-    <p>Solo pedimos lo necesario para entregarte tu pedido. No pedimos datos sensibles (salud, origen étnico, ideas políticas, biometría, etc.) y no recibimos datos de tarjetas ni de tu cuenta de Nequi.</p>
+    <p>Solo pedimos lo necesario para entregarte tu pedido. No pedimos datos sensibles (salud, origen étnico, ideas políticas, biometría, etc.) y no recibimos datos de tarjetas ni de tus cuentas bancarias, de Nequi o de Mercado Pago.</p>
     <div class="table-wrap"><table>
       <caption>Datos del formulario de compra</caption>
       <thead><tr><th scope="col">Dato</th><th scope="col">¿Obligatorio?</th><th scope="col">Para qué</th></tr></thead>
@@ -101,6 +101,7 @@
         <tr><td>Supabase</td><td>Base de datos donde se guardan pedidos, PQR y opiniones; almacenamiento de fotos de productos, de las fotos y videos públicos de las opiniones y de comprobantes de pago en un espacio privado accesible por la tienda.</td><td>Servidores en la nube, posiblemente fuera de Colombia.</td></tr>
         <tr><td>Vercel</td><td>Alojamiento del sitio web.</td><td>Estados Unidos y otros países.</td></tr>
         <tr><td>Twilio (si está activo)</td><td>Enviar el recibo y el aviso del pedido por WhatsApp.</td><td>Estados Unidos.</td></tr>
+        <tr><td>Mercado Pago (solo si eliges pagar con Mercado Pago)</td><td>Procesar tu pago. Le enviamos el número del pedido, el valor a pagar y, si lo escribiste, tu correo. Los datos de tu tarjeta o cuenta los escribes directamente en Mercado Pago, que los trata como responsable según su propia política de privacidad. Mercado Pago nos informa si el pago fue aprobado y con qué medio se hizo.</td><td>Colombia y otros países.</td></tr>
         <tr><td>Transportadora</td><td>Entregar el pedido (nombre, celular, dirección y, si la exige, cédula).</td><td>Colombia.</td></tr>
       </tbody>
     </table></div>
