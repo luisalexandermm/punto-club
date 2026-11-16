@@ -68,10 +68,13 @@
     if (!r.ok) { var e = new Error(d.error || 'No se pudo completar la operación'); e.status = r.status; throw e; }
     return d;
   }
+  /* Imágenes de productos: no se muestran a medio cargar; aparecen completas de una vez */
+  document.addEventListener('load', function (e) { var t = e.target; if (t && t.tagName === 'IMG' && t.classList.contains('nw')) t.classList.add('ok'); }, true);
+  document.addEventListener('error', function (e) { var t = e.target; if (t && t.tagName === 'IMG' && t.classList.contains('nw')) t.classList.add('ok'); }, true);
   var priceOf = function (p) { return p.salePrice && p.salePrice < p.price ? p.salePrice : p.price; };
   function art(p, cls, color) {
     var img = safeUrl((color && color.image) || p.image);
-    if (img) return '<img class="' + cls + '" src="' + esc(img) + '" alt="" loading="lazy" decoding="async">';
+    if (img) return '<img class="nw ' + cls + '" src="' + esc(img) + '" alt="">';
     var shape = p.category === 'Sandalias' ? 's-sandal' : p.category === 'Chanclas' ? 's-slide' : (p.shape || 's-low');
     var c = (color && color.h) || p.shoeColor || '#1d2733';
     return '<svg class="' + cls + '" viewBox="0 0 260 140" style="color:' + esc(c) + '" aria-hidden="true"><use href="#' + esc(shape) + '"/></svg>';
@@ -365,7 +368,7 @@
       '<span class="slide__ghost" aria-hidden="true">PUNTO</span>' +
       '<div class="slide__txt">' + (s.eyebrow ? '<span class="slide__eyebrow">' + esc(s.eyebrow) + '</span>' : '') + '<h2>' + esc(s.title) + '</h2>' + (s.subtitle ? '<p>' + esc(s.subtitle) + '</p>' : '') +
       (s.button ? '<button type="button" class="btn ' + (dark ? 'btn-primary' : 'btn-light') + '" data-slide="' + i + '">' + esc(s.button) + '</button>' : '') + '</div>' +
-      '<div class="slide__art" aria-hidden="true">' + (s.photo ? '<img class="photo-banner" src="' + esc(s.photo) + '" alt="">' : s.product ? art(s.product, '') : '') + '</div></div>';
+      '<div class="slide__art" aria-hidden="true">' + (s.photo ? '<img class="nw photo-banner" src="' + esc(s.photo) + '" alt="">' : s.product ? art(s.product, '') : '') + '</div></div>';
   }
   var SLIDES = [];
   function renderHero() {
@@ -1609,7 +1612,7 @@
     var p = S.products.find(function (x) { return x.id === i.id; });
     if (p) return art(p, '', (p.colors || []).find(function (c) { return c.n === i.color; }));
     var img = safeUrl(i.image);
-    return img ? '<img src="' + esc(img) + '" alt="" loading="lazy" decoding="async">' : '<svg viewBox="0 0 260 140" style="color:#1d2733" aria-hidden="true"><use href="#s-low"/></svg>';
+    return img ? '<img class="nw" src="' + esc(img) + '" alt="">' : '<svg viewBox="0 0 260 140" style="color:#1d2733" aria-hidden="true"><use href="#s-low"/></svg>';
   }
   function progress(o) {
     if (o.status === 'Cancelado') return 0;

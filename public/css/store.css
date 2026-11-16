@@ -5968,3 +5968,6 @@ html.popx-open body {
 .cat-aviso { color: var(--ink, #0e0e0e); }
 #boxOpts b span { color: var(--green, #1a7f37); white-space: nowrap; }
 #boxOpts { margin-bottom: 4px; }
+
+/* Imágenes de productos: ocultas hasta que terminan de cargar, luego aparecen completas de golpe */
+img.nw:not(.ok) { visibility: hidden; }
