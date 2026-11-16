@@ -466,6 +466,7 @@
   function markNoti(k) { var s = notiSeen(); s[k] = 1; try { sessionStorage.setItem(K_NOTI, JSON.stringify(s)); } catch (e) { } }
   function notiQueue() {
     var seen = notiSeen(), q = [];
+    if (F10 && !F10.agotado && F10.disponibles > 0) q.push({ k: 'f10', f: F10 }); // FIRST 10 va primero
     S.ann.filter(function (a) { return a.kind === 'barra'; }).forEach(function (a) { q.push({ k: 'a:' + a.id, a: a }); });
     (S.coupons || []).forEach(function (c) { q.push({ k: 'c:' + c.code, c: c }); });
     S.promos.forEach(function (p) { q.push({ k: 'p:' + p.id, p: p }); });
@@ -483,6 +484,7 @@
     showNoti(q[0]);
   }
   function notiData(it) {
+    if (it.f) { var f = it.f; return { img: '', ico: 'i-ticket', kick: '🎟️ FIRST 10 · Apertura', title: money(f.valor) + ' OFF para los primeros ' + f.cupos, text: f.disponibles + ' de ' + f.cupos + ' cupos disponibles · compra mínima ' + money(f.minimo) + ' · se aplica solo, sin código', btn: 'Comprar', act: 'data-noti-open' }; }
     if (it.c) { var c = it.c; return { img: safeUrl(c.image), ico: 'i-ticket', kick: '🎁 Cupón para ti', title: cupValue(c) + ' ' + cupUnit(c), text: (c.description ? c.description + ' · ' : '') + 'Código ' + c.code, btn: 'Usar', act: 'data-cup-use="' + esc(c.code) + '"' }; }
     if (it.p) { var p = it.p; return { img: safeUrl(p.image), ico: 'i-spark', kick: p.badge || 'Promoción', title: p.title, text: p.description || (p.endsAt ? 'Hasta el ' + fmtDate(p.endsAt) : ''), btn: 'Ver', act: 'data-noti-open' }; }
     var a = it.a, link = a.linkType && a.linkType !== 'ninguno';
@@ -580,7 +582,8 @@
     var u = e.target.closest('[data-cup-use]'); if (u) { useCoupon(u.dataset.cupUse); return; }
     if (e.target.closest('[data-noti-open]') && notiCur) {
       var it = notiCur; hideNoti();
-      if (it.a) { if (it.a.linkType && it.a.linkType !== 'ninguno') followLink({ type: it.a.linkType, value: it.a.linkValue }); }
+      if (it.f) { var cat = $('catalogo'); if (cat) { cat.scrollIntoView({ behavior: 'smooth' }); cat.focus({ preventScroll: true }); } }
+      else if (it.a) { if (it.a.linkType && it.a.linkType !== 'ninguno') followLink({ type: it.a.linkType, value: it.a.linkValue }); }
       else openPopup(it);
       return;
     }
@@ -854,9 +857,11 @@
   }
   function f10Fine() { return 'Exclusivo para los primeros ' + F10.cupos + ' clientes con pago confirmado. Un descuento por cliente. Compra mínima de ' + money(F10.minimo) + ' en productos. No aplica al envío ni a la caja personalizada. No acumulable con otros cupones.'; }
   function renderF10Banner() {
+    // El anuncio de FIRST 10 ahora sale como notificación flotante (ver notiQueue); la sección queda oculta
     var b = $('f10'); if (!b) return;
-    b.hidden = !F10;
-    if (!F10) { b.innerHTML = ''; return; }
+    b.hidden = true; b.innerHTML = '';
+    if (F10 && notiStarted && !notiCur && !notiSeen().f10) scheduleNoti(1500);
+    return;
     b.classList.toggle('f10--off', !!F10.agotado);
     b.innerHTML = '<div class="f10__in">' +
       '<p class="f10__kick">🎟️ FIRST 10 | PROMOCIÓN DE APERTURA</p>' +
