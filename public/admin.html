@@ -264,6 +264,10 @@
       <div class="field"><label for="pBg">Color de la tarjeta</label><input id="pBg" type="color" value="#e2f0e8"></div>
     </div>
     <label class="check"><input type="checkbox" id="pActive" checked> Visible en la tienda</label>
+    <div class="field"><label for="pPublish">Programar publicación (opcional)</label>
+      <input id="pPublish" type="datetime-local" aria-describedby="pPublishHelp">
+      <small id="pPublishHelp">El zapato aparece en la tienda en esa fecha y hora. Antes no se ve ni se puede comprar. Vacío = se publica apenas guardas.</small>
+    </div>
     <label class="check"><input type="checkbox" id="pFeatured"> Destacado (aparece en el carrusel del inicio)</label>
     <p class="help-box">Al pedir, el cliente elige <b>sin caja</b> o <b>con caja personalizada</b> (valor en <code>public/js/negocio.js</code> y <code>lib/empaque.js</code>; días de entrega por departamento en <code>lib/envios.js</code>). Los pedidos con caja muestran 🎁, pasan por el taller de Quibdó y sus avisos explican la espera.</p>
     <p class="form-msg bad" id="prodErr" role="alert" hidden></p>
@@ -285,6 +289,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/admin.js?v=32"></script>
+<script src="/js/admin.js?v=33"></script>
 </body>
 </html>

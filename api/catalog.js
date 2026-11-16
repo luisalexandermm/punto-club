@@ -3,7 +3,7 @@
    anuncios (banners, barra superior, dinámicas) y ajustes públicos de la tienda. */
 const supabase = require('../lib/supabase');
 const { ok, err, allowCors, checkToken } = require('../lib/helpers');
-const { productPrice, isLive } = require('../lib/pricing');
+const { productPrice, isLive, productLive } = require('../lib/pricing');
 const { precioEnvio, DEPARTAMENTOS, tablaPlazos } = require('../lib/envios');
 
 module.exports = async (req, res) => {
@@ -45,12 +45,15 @@ module.exports = async (req, res) => {
   if (pe || me || se) return err(res, 'Error al leer la base de datos', 500);
   const now = new Date();
   const livePromos = (promos || []).filter(p => isLive(p, now));
+  // Los zapatos programados no se muestran hasta su fecha de publicación
+  const liveProducts = (products || []).filter(p => productLive(p, now));
+  const desde = p => new Date(p.publish_at || p.created_at || 0).getTime();
 
   // "Nuevo": los 4 productos más recientes agregados en los últimos 30 días
   const monthAgo = now.getTime() - 30 * 864e5;
-  const newIds = new Set((products || [])
-    .filter(p => p.created_at && new Date(p.created_at).getTime() > monthAgo)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  const newIds = new Set(liveProducts
+    .filter(p => desde(p) > monthAgo)
+    .sort((a, b) => desde(b) - desde(a))
     .slice(0, 4).map(p => p.id));
 
   const mapProduct = p => {
@@ -116,7 +119,7 @@ module.exports = async (req, res) => {
       promoApertura: await require('../lib/promo-apertura').publico(supabase),
       previa: previa ? apertura : undefined
     },
-    products: (products || []).map(mapProduct),
+    products: liveProducts.map(mapProduct),
     promos: livePromos.map(pubPromo),
     coupons: pubCoupons,
     announcements: pubAnn

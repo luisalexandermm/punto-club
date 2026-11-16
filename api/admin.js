@@ -17,7 +17,7 @@ const PRODUCT_COLS = {
   tag: 'tag', desc: 'description', sizes: 'sizes', colors: 'colors',
   image: 'image', shape: 'shape', shoeColor: 'shoe_color', bg: 'bg',
   stock: 'stock', active: 'active', featured: 'featured', position: 'position',
-  category: 'category', gender: 'gender'
+  category: 'category', gender: 'gender', publishAt: 'publish_at'
 };
 const CATEGORIES = ['Tenis', 'Sandalias', 'Chanclas', 'Botas'];
 const GENDERS = ['Hombre', 'Mujer', 'Unisex'];
@@ -27,6 +27,7 @@ const toDb = (obj, map) => {
   if ('category' in r && !CATEGORIES.includes(r.category)) r.category = 'Tenis';
   if ('gender' in r && !GENDERS.includes(r.gender)) r.gender = 'Unisex';
   if ('brand' in r) r.brand = cleanText(r.brand, 40);
+  if ('publish_at' in r) { const d = r.publish_at ? new Date(r.publish_at) : null; r.publish_at = d && !isNaN(d) ? d.toISOString() : null; }
   // Tallas por color: números válidos; las tallas del producto = todas las de sus colores
   if (Array.isArray(r.colors)) {
     r.colors = r.colors.slice(0, 20).map(c => {
@@ -45,7 +46,7 @@ const prodToFront = p => ({
   image: p.image, shape: p.shape, shoeColor: p.shoe_color, bg: p.bg,
   stock: p.stock, active: p.active, featured: p.featured, position: p.position,
   category: p.category || (p.shape === 's-boot' ? 'Botas' : 'Tenis'), gender: p.gender || 'Unisex',
-  createdAt: p.created_at
+  createdAt: p.created_at, publishAt: p.publish_at || null
 });
 
 /* ------------------------------------------------------------------ */
@@ -292,6 +293,17 @@ module.exports = async (req, res) => {
   }
 
   /* -------- PRODUCTOS -------- */
+  /* Si todavía no se ejecutó lib/migracion-programar-2026-11.sql, la columna publish_at no existe:
+     sin fecha se guarda igual; con fecha se explica qué falta. */
+  async function guardarProducto(fila, hacer) {
+    let r = await hacer(supabase.from('products')).select().single();
+    if (r.error && /publish_at/.test(r.error.message)) {
+      if (fila.publish_at) return { error: { message: 'Para programar zapatos, primero ejecuta lib/migracion-programar-2026-11.sql en Supabase → SQL Editor.', status: 400 } };
+      delete fila.publish_at;
+      r = await hacer(supabase.from('products')).select().single();
+    }
+    return r;
+  }
   if (section === 'products') {
     if (method === 'GET') {
       const { data, error } = await supabase.from('products').select('*').order('position');
@@ -307,13 +319,14 @@ module.exports = async (req, res) => {
         const { count } = await supabase.from('products').select('id', { count: 'exact', head: true });
         row.position = (count || 0) + 1;
       }
-      const { data, error } = await supabase.from('products').insert(row).select().single();
-      if (error) return err(res, error.message, 500);
+      const { data, error } = await guardarProducto(row, q => q.insert(row));
+      if (error) return err(res, error.message, error.status || 500);
       return ok(res, prodToFront(data), 201);
     }
     if (method === 'PUT' && id) {
-      const { data, error } = await supabase.from('products').update({ ...toDb(body, PRODUCT_COLS), updated_at: nowIso() }).eq('id', id).select().single();
-      if (error) return err(res, error.message, 500);
+      const cambios = { ...toDb(body, PRODUCT_COLS), updated_at: nowIso() };
+      const { data, error } = await guardarProducto(cambios, q => q.update(cambios).eq('id', id));
+      if (error) return err(res, error.message, error.status || 500);
       return ok(res, prodToFront(data));
     }
     if (method === 'DELETE' && id) {

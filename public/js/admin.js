@@ -722,6 +722,11 @@
     var shape = p.category === 'Sandalias' ? 's-sandal' : p.category === 'Chanclas' ? 's-slide' : (p.shape || 's-low');
     return '<svg viewBox="0 0 260 140" style="color:' + esc(p.shoeColor || '#1d2733') + '" aria-hidden="true"><use href="#' + esc(shape) + '"/></svg>';
   }
+  function prodEstado(p) {
+    if (p.active === false) return '<span class="pill off">Oculto</span>';
+    if (p.publishAt && new Date(p.publishAt) > new Date()) return '<span class="pill warn">Programado</span><br><small>' + esc(fdate(p.publishAt)) + '</small>';
+    return '<span class="pill on">Visible</span>';
+  }
   function renderProducts() {
     var q = ($('prodSearch').value || '').toLowerCase(), cat = $('prodCat').value, gen = $('prodGen').value;
     var list = D.products.filter(function (p) { return (!cat || p.category === cat) && (!gen || p.gender === gen) && (!q || (p.name + ' ' + p.brand).toLowerCase().indexOf(q) > -1); });
@@ -730,7 +735,7 @@
         '<td>' + esc(p.category) + '<br><small>' + esc(p.gender) + '</small></td>' +
         '<td>' + (p.salePrice ? '<span class="was">' + money(p.price) + '</span>' + money(p.salePrice) : money(p.price)) + '</td>' +
         '<td>' + esc(p.stock != null ? p.stock : 0) + '</td>' +
-        '<td><span class="pill ' + (p.active === false ? 'off' : 'on') + '">' + (p.active === false ? 'Oculto' : 'Visible') + '</span>' + (p.featured ? ' <span class="pill warn">Destacado</span>' : '') + '</td>' +
+        '<td>' + prodEstado(p) + (p.featured ? ' <span class="pill warn">Destacado</span>' : '') + '</td>' +
         '<td><div class="row-actions"><button class="btn btn-line btn-sm" type="button" data-editp="' + esc(p.id) + '">Editar<span class="sr-only"> ' + esc(p.name) + '</span></button><button class="btn-danger" type="button" data-del="products" data-id="' + esc(p.id) + '">Eliminar<span class="sr-only"> ' + esc(p.name) + '</span></button></div></td></tr>';
     }).join('') || '<tr><td colspan="6" class="empty">' + esc(D.productsError || 'No hay productos con ese filtro.') + '</td></tr>';
   }
@@ -747,6 +752,7 @@
     $('pTag').value = p.tag || ''; $('pDesc').value = p.desc || '';
     $('pShape').value = p.shape || 's-low'; $('pShoeColor').value = p.shoeColor || '#1d2733'; $('pBg').value = p.bg || '#e2f0e8';
     $('pActive').checked = p.active !== false; $('pFeatured').checked = !!p.featured;
+    $('pPublish').value = toLocal(p.publishAt);
     prodImageUrl = p.image || '';
     // Productos antiguos (sin tallas por color): cada color arranca con las tallas del producto
     var baseSizes = p.sizes && p.sizes.length ? p.sizes : [36, 37, 38, 39, 40, 41, 42, 43];
@@ -835,7 +841,8 @@
       tag: $('pTag').value.trim(), desc: $('pDesc').value.trim(), sizes: allSizes,
       colors: colors, image: prodImageUrl,
       shape: $('pShape').value, shoeColor: $('pShoeColor').value, bg: $('pBg').value,
-      active: $('pActive').checked, featured: $('pFeatured').checked
+      active: $('pActive').checked, featured: $('pFeatured').checked,
+      publishAt: $('pPublish').value ? new Date($('pPublish').value).toISOString() : null
     };
     var bad = !body.name ? ['pName', 'Escribe el nombre del producto.'] : !body.brand ? ['pBrand', 'Escribe la marca.'] : !body.price ? ['pPrice', 'Escribe el precio.'] : body.salePrice && body.salePrice >= body.price ? ['pSale', 'El precio de oferta debe ser menor que el precio normal.'] : !colors.length ? ['addColor', 'Agrega al menos un color con sus tallas.'] : sinTallas ? ['colorRows', 'Elige al menos una talla para el color “' + sinTallas.n + '” (o quita ese color).'] : null;
     // El mensaje queda al final del cajón: lo mostramos también en un aviso y llevamos al campo

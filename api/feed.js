@@ -4,7 +4,7 @@
    Cada color de un modelo es un producto aparte (mismo item_group_id), con su propia foto.
    Los productos sin foto no se envían: Google exige una imagen real del producto. */
 const supabase = require('../lib/supabase');
-const { productPrice, isLive } = require('../lib/pricing');
+const { productPrice, isLive, productLive } = require('../lib/pricing');
 const { loadEnvio } = require('../lib/envios');
 const { siteUrl } = require('../lib/wompi');
 
@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
   const items = [];
 
   const cerrada = require('../lib/apertura').cerrada(now);
-  for (const p of cerrada ? [] : products || []) {
+  for (const p of cerrada ? [] : (products || []).filter(x => productLive(x, now))) {
     const pr = productPrice(p, live, now);
     const titulo = [p.brand, p.name].filter(Boolean).join(' ').replace(new RegExp('^(' + String(p.brand || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')\\s+\\1\\b', 'i'), '$1');
     const categoria = p.category || (p.shape === 's-boot' ? 'Botas' : 'Tenis');
