@@ -7,6 +7,7 @@ const { notifyOrder, pushReady, endpointOk, tablaLista, ADMIN, PUBLIC_KEY } = re
 const { precioEnvio } = require('../lib/envios');
 const { wompiReady } = require('../lib/wompi');
 const { sanitize: sanitizeCuentas } = require('../lib/cuentas');
+const promoApertura = require('../lib/promo-apertura');
 
 /* ------------------------------------------------------------------ */
 /*  Productos: camelCase (panel) ↔ snake_case (base de datos)          */
@@ -239,6 +240,7 @@ module.exports = async (req, res) => {
         heroHeadline: data.hero_headline, shippingNote: data.shipping_note,
         envioNacional: precioEnvio(data.envio_nacional), envioListo: Object.prototype.hasOwnProperty.call(data, 'envio_nacional'),
         pagos: sanitizeCuentas(data.pagos), pagosListo: Object.prototype.hasOwnProperty.call(data, 'pagos'),
+        promoApertura: await promoApertura.estado(supabase).catch(() => null),
         wompi: { activo: wompiReady(), pruebas: /^pub_test_/.test(process.env.WOMPI_PUBLIC_KEY || ''), eventos: !!process.env.WOMPI_EVENTS_SECRET }
       });
     }
@@ -248,12 +250,20 @@ module.exports = async (req, res) => {
       for (const [k, col] of Object.entries(map)) if (body[k] != null) update[col] = cleanText(body[k], 300);
       if (body.pagos != null) update.pagos = sanitizeCuentas(body.pagos);
       if (body.envioNacional != null && body.envioNacional !== '') update.envio_nacional = precioEnvio(body.envioNacional);
+      if (body.promoApertura != null) {
+        const p = promoApertura.sanitize(body.promoApertura);
+        const e = await promoApertura.estado(supabase);
+        if (!e.listo) return err(res, 'Falta preparar la base: ejecuta lib/migracion-promo-apertura-2026-11.sql en Supabase.', 500);
+        if (p.activa && e.entregados >= p.cupos) return err(res, `Ya se entregaron ${e.entregados} premios. Sube el número de cupos para volver a activarla.`, 400);
+        update.promo_apertura = { ...p, cerradaAuto: false };
+      }
       if (body.adminPassword) {
         if (String(body.adminPassword).length < 10) return err(res, 'La contraseña debe tener al menos 10 caracteres', 400);
         update.admin_password = hashPassword(body.adminPassword);
       }
       const { error } = await supabase.from('settings').update(update).eq('id', 'app');
       if (error && /envio_nacional/i.test(error.message)) return err(res, 'Falta preparar la base: ejecuta lib/migracion-punto-club-2026-11.sql en Supabase.', 500);
+      if (error && /promo_apertura/i.test(error.message)) return err(res, 'Falta preparar la base: ejecuta lib/migracion-promo-apertura-2026-11.sql en Supabase.', 500);
       if (error && /pagos/i.test(error.message)) return err(res, 'Falta preparar la base: ejecuta lib/migracion-domicilios-2026-11.sql en Supabase.', 500);
       if (error) return err(res, error.message, 500);
       return ok(res, { ok: true });
@@ -430,15 +440,24 @@ module.exports = async (req, res) => {
         up = await supabase.from('orders').update({ status, customer: { ...o.customer, tracking }, updated_at: at }).eq('id', id).select().single();
       }
       if (up.error) return err(res, up.error.message, 500);
-      const d = up.data;
+      let d = up.data;
+      /* Promo de apertura: el pedido gana su cupón al confirmar el pago; si se cancela, se anula */
+      let premio = null;
+      if (status !== prev && promoApertura.PAGADOS.includes(status)) {
+        premio = await promoApertura.premiar(supabase, d);
+        if (premio) d = { ...d, customer: { ...(d.customer || {}), premioApertura: premio.premio } };
+      } else if (status !== prev && status === 'Cancelado') {
+        const r = await promoApertura.anular(supabase, d);
+        if (r) d = { ...d, customer: { ...(d.customer || {}), premioApertura: { ...d.customer.premioApertura, anulado: true } } };
+      }
       /* Aviso al celular del cliente: si cambió el estado, o si se agregó/cambió la guía */
       let avisos = null;
       const guiaNueva = tracking.guia && tracking.guia !== t.guia;
       if (pushReady() && (status !== prev || guiaNueva)) {
-        try { avisos = await notifyOrder(supabase, d, status, tracking, { soloGuia: status === prev }); }
+        try { avisos = await notifyOrder(supabase, d, status, tracking, { soloGuia: status === prev, premio: premio && premio.premio }); }
         catch (e) { console.error('[push] aviso del pedido', id, e.message); avisos = 0; }
       }
-      return ok(res, { ...d, status: normalizeStatus(d.status), tracking: trackingOf(d), pricing: d.pricing || (d.customer && d.customer.pricing) || null, avisos });
+      return ok(res, { ...d, status: normalizeStatus(d.status), tracking: trackingOf(d), pricing: d.pricing || (d.customer && d.customer.pricing) || null, avisos, premio });
     }
     if (method === 'DELETE' && id) {
       const { error } = await supabase.from('orders').delete().eq('id', id);

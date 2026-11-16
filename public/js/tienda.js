@@ -816,6 +816,8 @@
     var dep = $('fDepto').value;
     $('noBoxDays').textContent = plazoTxt(dep, 'Sin caja');
     $('boxDays').textContent = plazoTxt(dep, 'Con caja');
+    $('promoAp').hidden = !PROMO_AP;
+    if (PROMO_AP) $('promoAp').innerHTML = '🎁 <b>Promo de apertura:</b> los primeros ' + PROMO_AP.cupos + ' pedidos con pago confirmado ganan un cupón de <b>' + money(PROMO_AP.valor) + '</b> para su próxima compra' + (PROMO_AP.minimo ? ' desde ' + money(PROMO_AP.minimo) : '') + ', válido por ' + PROMO_AP.dias + ' días. <b>' + (PROMO_AP.quedan === 1 ? 'Queda 1 cupo' : 'Quedan ' + PROMO_AP.quedan + ' cupos') + '.</b>';
     $('plazoNota').textContent = dep ? 'Entrega estimada a ' + dep + ': ' + plazoTxt(dep, S.empaque) + ' después de confirmar tu pago.' : 'Elige el departamento para ver el plazo exacto de entrega.';
     document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.checked = r.value === S.empaque; });
     $('payNequiTxt').textContent = 'Desde la app de cualquier banco (Nequi, Bancolombia, Daviplata…). Pagas ' + money(c.totalConEnvio) + ' ahora.';
@@ -824,6 +826,7 @@
   document.querySelectorAll('input[name="pago"]').forEach(function (r) { r.addEventListener('change', renderCheckoutSummary); });
   /* Empaque: sin caja (sale apenas se confirma el pago) o con caja personalizada (+valor por par y unos días más) */
   var CAJA_PRECIO = Number(N.cajaPrecio) || 10000;
+  var PROMO_AP = null; // promo de apertura (de /api/catalog → settings.promoApertura)
   /* Plazos de entrega en días hábiles por departamento (llegan de /api/catalog → settings.plazos).
      Sin caja sale directo de fábrica; con caja pasa por el taller de Quibdó y tarda más. */
   var PLAZOS = {};
@@ -1644,6 +1647,7 @@
       (isActive(o) ? '<div data-push-slot>' + pushCardHTML(false) + '</div>' : '') +
       reviewSecHTML(o) +
       (o.nota ? '<div class="od-note"><b>Mensaje de la tienda:</b> ' + esc(o.nota) + '</div>' : '') +
+      (o.premio ? '<div class="od-note od-premio"><b>🎁 ¡Ganaste la promo de apertura!</b> Tienes ' + money(o.premio.valor) + ' de descuento en tu próxima compra' + (o.premio.minimo ? ' desde ' + money(o.premio.minimo) : '') + '. Cupón <b class="od-premio__code">' + esc(o.premio.code) + '</b>, un solo uso, válido hasta el ' + esc(new Date(o.premio.vence).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })) + '.<button type="button" class="btn btn-primary btn-sm" data-cup-use="' + esc(o.premio.code) + '">Usar en mi próxima compra</button></div>' : '') +
       (o.pagoReportado && o.pagoReportado.hasComprobante ? '<section class="od-sec" id="odProof"><h4>Tu comprobante</h4><p class="hint">Cargando…</p></section>' : '') +
       '<section class="od-sec"><h4>Productos</h4>' + items +
       '<div class="totals od-tot">' + (p.promoSavings ? '<div class="save"><span>Promociones</span><span>-' + money(p.promoSavings) + '</span></div>' : '') +
@@ -1764,6 +1768,7 @@
     if (s.pagos && Array.isArray(s.pagos.cuentas) && s.pagos.cuentas.length) { CUENTAS = s.pagos.cuentas; if (S.order && !$('coStep2').hidden) renderAccounts(); }
     if (s.envio != null && isFinite(s.envio)) { ENVIO = Number(s.envio); renderCart(); if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
     if (Array.isArray(s.departamentos) && s.departamentos.length) { DEPTOS = s.departamentos; renderDeptos(); }
+    PROMO_AP = s.promoApertura && s.promoApertura.quedan > 0 ? s.promoApertura : null;
     if (s.plazos && typeof s.plazos === 'object') { PLAZOS = s.plazos; if (stack.indexOf($('coSheet')) > -1) renderCheckoutSummary(); }
     // Wompi está en pausa: la tienda solo ofrece transferencia o QR (cuentas configuradas en el panel)
     if (typeof s.push === 'string' && s.push !== PUSH_KEY) { PUSH_KEY = s.push; renderPushSlots(); syncPush(); }

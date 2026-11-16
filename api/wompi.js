@@ -9,6 +9,7 @@ const { ok, err, allowCors } = require('../lib/helpers');
 const { ORDER_RE, normalizeStatus, trackingOf } = require('../lib/pedidos');
 const { wompiReady, checkoutUrl, getTransaction, validEvent, orderIdFromReference } = require('../lib/wompi');
 const { sendWhatsApp, adminWhatsApp } = require('../lib/whatsapp');
+const promoApertura = require('../lib/promo-apertura');
 
 const money = n => '$' + Number(n || 0).toLocaleString('es-CO');
 const FINAL = ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR'];
@@ -56,6 +57,7 @@ async function applyTransaction(tx) {
 
   if (confirm) {
     result.orderStatus = 'Pago confirmado';
+    await promoApertura.premiar(supabase, { ...o, customer: update.customer, status: 'Pago confirmado' });
     await Promise.all([
       sendWhatsApp(adminWhatsApp(), `Pago aprobado en Wompi\nPedido ${numero} · ${money(wompi.valor)} · ${wompi.metodo}\n${c.nombre || ''} · ${c.direccion || ''}, ${c.barrio || ''} (Quibdó)`),
       c.telefono ? sendWhatsApp('+57' + c.telefono, `Punto Club: recibimos tu pago de ${money(wompi.valor)} para el pedido ${numero}. Ya lo estamos preparando.`) : false

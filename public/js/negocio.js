@@ -20,7 +20,10 @@ window.NEGOCIO = {
   whatsapp: '573145312045', // Solo números, con indicativo 57
   telefonoVisible: '314 531 2045',
   horario: '8:00 a. m. – 5:00 p. m.',
-  instagram: '',            // URL completa de Instagram (vacío = no se muestra el ícono)
+  // Redes sociales: URL completa (vacío = no se muestra el ícono)
+  facebook: 'https://www.facebook.com/share/1FSPQ3Qq7C/',
+  tiktok: 'https://www.tiktok.com/@punto_club',
+  instagram: 'https://www.instagram.com/punt.oclub/',
 
   /* Pago con Nequi / Bre-B. El QR está en /img/nequi-qr.png.
      El cliente ve este nombre y esta llave para confirmar a quién le paga. */
@@ -84,7 +87,7 @@ window.NEGOCIO = {
       if (el.tagName === 'A') {
         if (k === 'correo') el.href = 'mailto:' + v;
         if (k === 'telefonoVisible' || k === 'whatsappLink') el.href = 'https://wa.me/' + N.whatsapp;
-        if (k === 'instagram') { el.href = v; el.hidden = false; return; }
+        if (k === 'instagram' || k === 'facebook' || k === 'tiktok') { el.href = v; el.hidden = false; return; }
       }
       el.textContent = v;
     });

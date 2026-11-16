@@ -481,12 +481,18 @@
     });
   }
   /* Mensaje de WhatsApp para avisar al cliente del estado actual de su pedido nacional */
+  /* Promo de apertura: texto del premio para el mensaje de WhatsApp */
+  function premioTxt(c) {
+    var p = c.premioApertura;
+    if (!p || p.anulado) return '';
+    return '\n\n🎁 ¡Además ganaste nuestra promo de apertura! Tienes ' + money(p.valor) + ' de descuento en tu próxima compra desde ' + money(p.minimo) + ' con el cupón ' + p.code + ' (válido hasta el ' + new Date(p.vence).toLocaleDateString('es-CO') + ', un solo uso).';
+  }
   function waEstado(o, nom) {
     var c = o.customer || {}, t = o.tracking || {}, pr = o.pricing || {}, link = trackLink(o);
     var hola = 'Hola ' + (nom || '') + ', ';
     switch (o.status) {
       case 'Recibido': return ['Avisar: recibimos el pedido', hola + 'recibimos tu pedido ' + o.id + ' en Punto Club. Para confirmarlo paga ' + money(pr.pagarAhora || o.total) + ' por QR o transferencia y envíanos el comprobante. Sigue tu pedido aquí: ' + link];
-      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Muy pronto tu par sale hacia nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link];
+      case 'Pago confirmado': return ['Avisar: pago confirmado', hola + '¡confirmamos el pago de tu pedido ' + o.id + '! 💚 ' + (c.empaque === 'Con caja' ? 'Muy pronto tu par sale hacia nuestro taller en Quibdó, donde personalizamos tu caja 🎁, y de ahí sale hacia ' : 'Ya lo estamos alistando para enviarlo a ') + (c.ciudad || 'tu ciudad') + '.' + (c.plazo ? ' Te llega en unos ' + c.plazo + '.' : '') + ' Sigue cada paso aquí: ' + link + premioTxt(c)];
       case 'Hacia el taller': return ['Avisar: va hacia el taller', hola + 'tu pedido ' + o.id + ' va camino a nuestro taller en Quibdó 🚚, donde lo empacamos en su caja personalizada 🎁. Te avisamos cuando salga hacia ti. Síguelo aquí: ' + link];
       case 'En preparación': return ['Avisar: en preparación', hola + 'tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' ya llegó a nuestro taller y se está empacando en su caja personalizada 🎁' : ' se está empacando en bolsa protectora 📦') + '. Apenas salga te enviamos el número de guía. Síguelo aquí: ' + link];
       case 'Enviado': return ['Avisar: enviado con guía', hola + '¡tu pedido ' + o.id + (c.empaque === 'Con caja' ? ' ya salió de nuestro taller 🎁 y' : '') + ' va en camino a ' + (c.ciudad || 'tu ciudad') + '! 🚚' + (t.guia ? ' Transportadora: ' + (t.transportadora || '—') + '. Número de guía: ' + t.guia + '.' : '') + (t.link ? ' Rastréalo aquí: ' + t.link : '') + ' También lo ves en: ' + link];
@@ -575,6 +581,7 @@
         '</summary>' +
         '<div class="ocard__body">' +
         (c.wompi ? '<p class="ref-box"><b>Wompi: ' + esc(WOMPI_TXT[c.wompi.status] || c.wompi.status) + '</b>' + (c.wompi.metodo ? ' · ' + esc(c.wompi.metodo) : '') + ' · ' + money(c.wompi.valor) + ' <small>(' + fdate(c.wompi.at) + ')</small><br>Transacción ' + esc(c.wompi.transactionId) + ' · Ref. ' + esc(c.wompi.reference) + '</p>' : '') +
+        (c.premioApertura ? '<p class="ref-box">🎁 <b>' + (c.premioApertura.anulado ? 'Premio de apertura anulado' : 'Ganó la promo de apertura') + '</b> · cupón ' + esc(c.premioApertura.code) + ' por ' + money(c.premioApertura.valor) + ' (vence ' + esc(new Date(c.premioApertura.vence).toLocaleDateString('es-CO')) + ')</p>' : '') +
         (c.pagoReportado ? '<p class="ref-box"><b>El cliente reportó su pago</b>' + (c.pagoReportado.ref ? ' · Referencia: ' + esc(c.pagoReportado.ref) : '') + ' <small>(' + fdate(c.pagoReportado.at) + ')</small><br>Revisa que el pago llegó a tu cuenta antes de confirmar.' + (c.pagoReportado.cuenta ? ' El cliente dice que pagó a: <b>' + esc(c.pagoReportado.cuenta) + '</b>.' : '') + '' + (c.pagoReportado.hasComprobante ? ' <button class="btn btn-line btn-sm" type="button" data-proof="' + esc(o.id) + '">Ver foto del comprobante</button>' : '') + '</p>' : '') +
         '<div class="ocard__grid">' +
           '<section class="osec osec--envio" aria-label="Datos de envío">' +
@@ -625,7 +632,9 @@
       D.orders = D.orders.map(function (x) { return x.id === id ? upd : x; });
       renderOrders(); renderStats();
       var avisoTxt = upd.avisos > 0 ? ' · notificación enviada al celular del cliente' : upd.avisos === 0 ? ' · el cliente no tiene avisos activados' : '';
-      toast('Seguimiento de ' + id + ' guardado' + avisoTxt + (cambioEstado ? '. Avísale también por WhatsApp 👇' : ''), 6000);
+      var premioAv = upd.premio ? ' · 🎁 ganó el cupón ' + upd.premio.premio.code + (upd.premio.cerrada ? ' (era el último: la promo de apertura se apagó sola)' : ' (quedan ' + upd.premio.quedan + ')') : '';
+      toast('Seguimiento de ' + id + ' guardado' + avisoTxt + premioAv + (cambioEstado ? '. Avísale también por WhatsApp 👇' : ''), upd.premio ? 9000 : 6000);
+      if (upd.premio) api('/admin/settings').then(function (s) { D.settings = s; fillPromoAp(); }, function () {});
       if (cambioEstado) {
         var wb = document.querySelector('[data-wa-quick="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]');
         if (wb) { wb.classList.add('pulse'); wb.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(function () { wb.focus({ preventScroll: true }); }, 400); }
@@ -1128,7 +1137,33 @@
   });
 
   /* ---------------- ajustes ---------------- */
-  function fillSettings() { var s = D.settings || {}; $('sWa').value = s.whatsapp || ''; $('sShip').value = s.shippingNote || ''; fillEnvio(); fillAccounts(); if (N.pintar) N.pintar(); }
+  function fillSettings() { var s = D.settings || {}; $('sWa').value = s.whatsapp || ''; $('sShip').value = s.shippingNote || ''; fillEnvio(); fillAccounts(); fillPromoAp(); if (N.pintar) N.pintar(); }
+
+  /* ---------------- promo de apertura: los primeros N pedidos pagados ganan un cupón ---------------- */
+  function fillPromoAp() {
+    var p = (D.settings || {}).promoApertura;
+    if (!p) { $('apForm').hidden = true; return; }
+    $('apForm').hidden = false;
+    $('apWarn').hidden = !!p.listo;
+    $('apOn').checked = !!p.activa; $('apCupos').value = p.cupos; $('apValor').value = p.valor; $('apMin').value = p.minimo; $('apDias').value = p.dias;
+    $('apCount').innerHTML = '<b>' + p.entregados + ' de ' + p.cupos + '</b> premios entregados · ' +
+      (p.quedan ? 'quedan <b>' + p.quedan + '</b>' : 'no quedan cupos') + ' · ' +
+      (p.activa ? '<span class="pill on">Activa</span>' : p.cerradaAuto ? '<span class="pill off">Se apagó sola: ya se entregaron todos</span>' : '<span class="pill off">Apagada</span>');
+    var ganadores = (D.orders || []).filter(function (o) { return o.customer && o.customer.premioApertura; });
+    $('apList').innerHTML = ganadores.length ? '<ul class="ap-list">' + ganadores.map(function (o) {
+      var pr = o.customer.premioApertura, cup = (D.coupons || []).filter(function (x) { return x.code === pr.code; })[0];
+      var est = pr.anulado ? '<span class="pill off">Anulado</span>' : cup && cup.uses > 0 ? '<span class="pill on">Ya lo usó</span>' : new Date(pr.vence) < new Date() ? '<span class="pill off">Venció</span>' : '<span class="pill warn">Sin usar</span>';
+      return '<li><b>' + esc(pr.code) + '</b> · pedido ' + esc(o.id) + ' · ' + esc((o.customer.nombre || '').split(' ')[0]) + ' · vence ' + esc(new Date(pr.vence).toLocaleDateString('es-CO')) + ' ' + est + '</li>';
+    }).join('') + '</ul>' : '';
+  }
+  $('apForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var body = { activa: $('apOn').checked, cupos: Number($('apCupos').value), valor: Number($('apValor').value), minimo: Number($('apMin').value), dias: Number($('apDias').value) };
+    if (!(body.cupos >= 1) || !(body.valor >= 1000) || !(body.minimo >= 0) || !(body.dias >= 1)) { toast('Revisa los valores de la promo.', 4500); return; }
+    if (body.minimo && body.valor >= body.minimo) { toast('El valor del cupón debe ser menor que la compra mínima.', 4500); return; }
+    try { await api('/admin/settings', { method: 'PUT', body: { promoApertura: body } }); await loadAll(); toast(body.activa ? 'Promo de apertura activa 🎁' : 'Promo de apertura guardada (apagada)'); }
+    catch (err) { toast(err.message, 6000); }
+  });
 
   /* ---------------- envío nacional: tarifa fija para toda Colombia ---------------- */
   function fillEnvio() {

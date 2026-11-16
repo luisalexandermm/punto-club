@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="/img/pc-icon-180.png">
 <meta name="theme-color" content="#0e0e0e">
 <link rel="stylesheet" href="/css/fonts.css">
-<link rel="stylesheet" href="/css/admin.css?v=17">
-<script src="/js/negocio.js?v=3"></script>
+<link rel="stylesheet" href="/css/admin.css?v=18">
+<script src="/js/negocio.js?v=4"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Saltar al contenido</a>
@@ -184,6 +184,21 @@
         <div class="field"><label for="envioVal">Valor del envío a toda Colombia</label><input id="envioVal" type="number" inputmode="numeric" min="0" max="100000" step="500" aria-describedby="envioVal-h"><small id="envioVal-h">Entre $0 y $100.000. Pon 0 si el envío es gratis para todos.</small></div>
         <button class="btn btn-primary" type="submit">Guardar envío</button>
       </form>
+      <form class="panel dom-panel" id="apForm" novalidate>
+        <h2>🎁 Promo de apertura</h2>
+        <p class="hint">Los primeros pedidos con <b>pago confirmado</b> ganan un cupón de un solo uso para su próxima compra. El cupón se crea solo cuando cambias el pedido a “Pago confirmado”, y aparece en el pedido del cliente, en el aviso al celular y en el mensaje de WhatsApp. Cuando se entrega el último premio, la promo <b>se apaga sola</b>. Si cancelas un pedido premiado y su cupón no se ha usado, el cupón se anula y el cupo vuelve a quedar libre.</p>
+        <p class="ref-box" id="apWarn" hidden>Para usarla, primero ejecuta <code>lib/migracion-promo-apertura-2026-11.sql</code> en el editor SQL de Supabase.</p>
+        <p class="ap-count" id="apCount" aria-live="polite"></p>
+        <label class="check"><input type="checkbox" id="apOn"> Promo activa (se muestra en la tienda)</label>
+        <div class="ap-grid">
+          <div class="field"><label for="apCupos">Pedidos que ganan</label><input id="apCupos" type="number" inputmode="numeric" min="1" max="500"></div>
+          <div class="field"><label for="apValor">Valor del cupón ($)</label><input id="apValor" type="number" inputmode="numeric" min="1000" max="500000" step="1000"></div>
+          <div class="field"><label for="apMin">Compra mínima para usarlo ($)</label><input id="apMin" type="number" inputmode="numeric" min="0" step="1000"></div>
+          <div class="field"><label for="apDias">Días para usarlo</label><input id="apDias" type="number" inputmode="numeric" min="1" max="365"></div>
+        </div>
+        <div id="apList"></div>
+        <button class="btn btn-primary" type="submit">Guardar promo</button>
+      </form>
       <form class="panel dom-panel" id="acctForm" novalidate>
         <h2>Cuentas para recibir pagos</h2>
         <p class="hint">Se recibe por transferencia o QR (Wompi está en pausa). Agrega <b>Nequi</b>, una <b>llave Bre-B</b>, <b>Bancolombia</b>, <b>Daviplata</b> u otro banco, cada uno con la foto de su QR. El cliente elige la cuenta en pestañas y ve el QR, el titular y el número. Puedes tener hasta 6; la primera es la que se muestra de entrada.</p>
@@ -270,6 +285,6 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/js/admin.js?v=28"></script>
+<script src="/js/admin.js?v=29"></script>
 </body>
 </html>

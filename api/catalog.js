@@ -104,6 +104,8 @@ module.exports = async (req, res) => {
       wompi: false,
       push: require('../lib/push').pushReady() ? require('../lib/push').PUBLIC_KEY : '',
       pagos: require('../lib/cuentas').sanitize(settings.pagos),
+      // Promo de apertura: { cupos, quedan, valor, minimo, dias } o null si está apagada o ya se acabó
+      promoApertura: await require('../lib/promo-apertura').publico(supabase),
       previa: previa ? apertura : undefined
     },
     products: (products || []).map(mapProduct),
