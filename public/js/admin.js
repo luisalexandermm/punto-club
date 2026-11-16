@@ -35,14 +35,7 @@
   }
 
   /* ---------------- ingreso ---------------- */
-  // El panel se usa desde el navegador, nunca dentro de la app instalada de la tienda
-  if ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true) {
-    TOKEN = null;
-    $('loginForm').innerHTML = '<div class="logo"><img src="/img/punto-club-negro.png" alt="Punto Club" width="243" height="52"></div>' +
-      '<p>El panel de administración se abre desde el navegador, no desde la app.</p>' +
-      '<a class="btn btn-primary" href="/admin.html" target="_blank" rel="noopener">Abrir en el navegador</a>';
-    return;
-  }
+  // El panel también se puede abrir dentro de la app instalada (punto discreto del footer)
   $('loginForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     var pass = $('passInput').value;
