@@ -1968,8 +1968,6 @@
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var installEvt = null, appReady = false;
-  // Dentro de la app instalada no hay acceso al panel: se entra desde el navegador
-  if (standalone) { var adm = $('adminLink'); if (adm) adm.remove(); }
   function renderInstall() {
     var bar = $('installBar');
     var dismissed = Date.now() - ((store.get(K_INSTALL) || {}).at || 0) < 30 * 864e5;
