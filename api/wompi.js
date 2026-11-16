@@ -10,6 +10,7 @@ const { ORDER_RE, normalizeStatus, trackingOf } = require('../lib/pedidos');
 const { wompiReady, checkoutUrl, getTransaction, validEvent, orderIdFromReference } = require('../lib/wompi');
 const { sendWhatsApp, adminWhatsApp } = require('../lib/whatsapp');
 const promoApertura = require('../lib/promo-apertura');
+const pagoMercadoPago = require('../lib/pago-mercadopago');
 
 const money = n => '$' + Number(n || 0).toLocaleString('es-CO');
 const FINAL = ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR'];
@@ -67,6 +68,8 @@ async function applyTransaction(tx) {
 }
 
 module.exports = async (req, res) => {
+  // /api/mercadopago llega aquí (límite de 12 funciones del plan Hobby de Vercel)
+  if ((req.query && req.query.pasarela === 'mp') || /^\/api\/mercadopago/.test(String(req.url || ''))) return pagoMercadoPago(req, res);
   allowCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return err(res, 'Método no permitido', 405);
