@@ -16,9 +16,9 @@
 <meta name="apple-mobile-web-app-title" content="Punto Club">
 <link rel="preload" href="fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/store.css?v=32">
+<link rel="stylesheet" href="css/store.css?v=33">
 <link rel="stylesheet" href="css/apertura.css?v=2">
-<script src="js/arranque.js"></script>
+<script src="js/arranque.js?v=2"></script>
 <noscript><style>.k-loader{display:none!important}html.k-loading body{overflow:auto}</style></noscript>
 <script src="js/negocio.js?v=5"></script>
 </head>
@@ -244,6 +244,10 @@
 </div><!-- /#app -->
 
 <!-- ============ MENÚ INFERIOR ============ -->
+<button type="button" class="theme-fab" id="themeFab" aria-pressed="false" aria-label="Cambiar a modo oscuro" title="Modo oscuro">
+  <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></svg>
+  <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+</button>
 <nav class="bnav" id="bnav" aria-label="Menú inferior">
   <button type="button" id="bnHome" data-nav="home" aria-current="page"><svg aria-hidden="true"><use href="#i-home"/></svg>Inicio</button>
   <button type="button" id="bnShop" data-nav="shop"><svg aria-hidden="true"><use href="#i-grid"/></svg>Catálogo</button>

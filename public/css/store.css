@@ -22,6 +22,22 @@
   --r: 22px;
   --shadow: 0 10px 30px -14px rgba(10,42,32,.35);
   --nav-h: 74px;
+  /* Tokens para el modo oscuro (en claro valen lo mismo que antes) */
+  --surface-2: #f6faf8;
+  --green-tx: #0e4d38;
+  --green-bd: #0e4d38;
+  --label: #22332b;
+  --on-ink: #fff;
+  --ink-2: #2d4038;
+  --ph: #62736a;
+  --hdr-bg: rgba(238,246,241,.9);
+  --warn-bg: #fff4c2;
+  --warn-ink: #4a3d00;
+  --bad-bg: #fde8e6;
+  --bad-ink: #8a1c12;
+  --glass: rgba(255,255,255,.92);
+  --skel: #e4eee8;
+  --skel-2: #f4f9f6;
 }
 
 * {
@@ -81,7 +97,7 @@ button {
 }
 
 a {
-  color: var(--green);
+  color: var(--green-tx);
 }
 
 :focus-visible {
@@ -107,7 +123,7 @@ a {
   left: 12px;
   top: -80px;
   z-index: 9999;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   padding: 10px 16px;
   border-radius: 10px;
@@ -180,7 +196,7 @@ main {
   position: sticky;
   top: 0;
   z-index: 60;
-  background: rgba(238,246,241,.9);
+  background: var(--hdr-bg);
   backdrop-filter: saturate(1.4) blur(12px);
   -webkit-backdrop-filter: saturate(1.4) blur(12px);
   border-bottom: 1px solid transparent;
@@ -279,7 +295,7 @@ main {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   display: grid;
   place-items: center;
   position: relative;
@@ -323,7 +339,7 @@ main {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fff;
+  background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: 16px;
   padding: 0 14px;
@@ -331,7 +347,7 @@ main {
 }
 
 .search label:focus-within {
-  border-color: var(--green);
+  border-color: var(--green-bd);
 }
 
 .search svg {
@@ -352,13 +368,13 @@ main {
 }
 
 .search input::placeholder {
-  color: #62736a;
+  color: var(--ph);
 }
 
 .search .clear {
   font-size: .85rem;
   font-weight: 800;
-  color: var(--green);
+  color: var(--green-tx);
   padding: 6px 4px;
 }
 
@@ -531,7 +547,7 @@ main {
 
 .dot[aria-current="true"]::before {
   width: 22px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .car-pause {
@@ -575,7 +591,7 @@ main {
   min-width: 76px;
   padding: 12px 12px 10px;
   border-radius: 20px;
-  background: #fff;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -619,7 +635,7 @@ main {
 .pill {
   padding: 8px 14px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   border: 1.5px solid var(--line);
   font-weight: 700;
   font-size: .86rem;
@@ -629,7 +645,7 @@ main {
 .pill[aria-pressed="true"] {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 /* ---------- Marcas (banda animada) ---------- */
@@ -744,7 +760,7 @@ main {
 }
 
 .link-btn {
-  color: var(--green);
+  color: var(--green-tx);
   font-weight: 800;
   font-size: .92rem;
   text-decoration: underline;
@@ -1011,7 +1027,7 @@ main {
 
 .gcard__pill:hover,
 .gcard__pill:focus-visible {
-  background: #fff;
+  background: var(--surface);
   color: #0e0e0e;
 }
 
@@ -1045,7 +1061,7 @@ main {
   height: 36px;
   margin-left: -10px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   border: 2px solid rgba(255,255,255,.95);
   overflow: hidden;
   animation: gDot4 calc(var(--n) * 3.2s) ease-in-out infinite;
@@ -1122,7 +1138,7 @@ main {
 }
 
 .gcard:hover .gcard__cta {
-  background: #fff;
+  background: var(--surface);
 }
 
 .gcard:hover .gcard__cta svg {
@@ -1258,7 +1274,7 @@ main {
 /* Encabezado del género elegido */
 
 .ghead {
-  background: #fff;
+  background: var(--surface);
   border-radius: 24px;
   padding: 16px 16px 14px;
   margin-bottom: 6px;
@@ -1306,7 +1322,7 @@ main {
 
 .promo {
   scroll-snap-align: start;
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
   padding: 16px;
   border: 1.5px solid var(--line);
@@ -1345,7 +1361,7 @@ main {
 .promo summary {
   cursor: pointer;
   font-weight: 800;
-  color: var(--green);
+  color: var(--green-tx);
   padding: 4px 0;
 }
 
@@ -1494,13 +1510,13 @@ img.card__shoe,
   font-weight: 800;
   padding: 4px 9px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 
 .tag--new {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .tag--off {
@@ -1542,8 +1558,8 @@ img.card__shoe,
   gap: 5px;
   font-size: .72rem;
   font-weight: 800;
-  color: #5a4a00;
-  background: #fff4c2;
+  color: var(--warn-ink);
+  background: var(--warn-bg);
   border-radius: 999px;
   padding: 3px 8px;
   align-self: flex-start;
@@ -1606,7 +1622,7 @@ img.card__shoe,
   text-align: center;
   color: var(--muted);
   padding: 30px 10px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
 }
 
@@ -1676,7 +1692,7 @@ img.card__shoe,
 }
 
 .btn-light {
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -1695,8 +1711,8 @@ img.card__shoe,
 
 .btn-line {
   background: transparent;
-  color: var(--green);
-  border: 1.5px solid var(--green);
+  color: var(--green-tx);
+  border: 1.5px solid var(--green-bd);
 }
 
 .btn-line:hover {
@@ -1728,7 +1744,8 @@ footer {
   color: #d8d8d2;
   margin-top: 34px;
   /* El espacio del menú inferior va dentro del footer, para que no quede una franja clara debajo */
-  padding: 34px 0 calc(26px + var(--nav-h) + 18px + env(safe-area-inset-bottom));
+  /* +58px para que el botón flotante del tema no tape el final del footer */
+  padding: 34px 0 calc(26px + var(--nav-h) + 18px + 58px + env(safe-area-inset-bottom));
   font-size: .9rem;
 }
 
@@ -1983,7 +2000,7 @@ footer :focus-visible {
 
 .sheet__foot {
   padding: 12px 18px calc(16px + env(safe-area-inset-bottom));
-  background: #fff;
+  background: var(--surface);
   border-top: 1px solid var(--line);
 }
 
@@ -1991,7 +2008,7 @@ footer :focus-visible {
   width: 42px;
   height: 42px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   display: grid;
   place-items: center;
   box-shadow: 0 2px 10px -5px rgba(10,42,32,.3);
@@ -2086,7 +2103,7 @@ footer :focus-visible {
 }
 
 .pd__desc {
-  color: #2d4038;
+  color: var(--ink-2);
   font-size: .95rem;
   margin: 4px 0 10px;
 }
@@ -2095,8 +2112,8 @@ footer :focus-visible {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  background: #fff4c2;
-  color: #4a3d00;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   border-radius: 16px;
   padding: 11px 13px;
   font-size: .88rem;
@@ -2133,7 +2150,7 @@ footer :focus-visible {
   min-width: 52px;
   height: 48px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   border: 1.5px solid var(--line);
   font-weight: 800;
 }
@@ -2146,7 +2163,7 @@ footer :focus-visible {
 
 .size[aria-pressed="true"] {
   background: var(--green);
-  border-color: var(--green);
+  border-color: var(--green-bd);
   color: #fff;
 }
 
@@ -2162,7 +2179,7 @@ footer :focus-visible {
   gap: 8px;
   padding: 6px 12px 6px 6px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   border: 1.5px solid var(--line);
   font-size: .85rem;
   font-weight: 700;
@@ -2176,14 +2193,14 @@ footer :focus-visible {
 }
 
 .color[aria-pressed="true"] {
-  border-color: var(--green);
+  border-color: var(--green-bd);
   box-shadow: 0 0 0 2px var(--green) inset;
 }
 
 .qty {
   display: inline-flex;
   align-items: center;
-  background: #fff;
+  background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: 999px;
 }
@@ -2217,7 +2234,7 @@ footer :focus-visible {
   grid-template-columns: 76px 1fr auto;
   gap: 12px;
   align-items: center;
-  background: #fff;
+  background: var(--surface);
   border-radius: 20px;
   padding: 10px;
   margin-bottom: 10px;
@@ -2303,7 +2320,7 @@ footer :focus-visible {
   border: 1.5px solid var(--field);
   padding: 0 12px;
   text-transform: uppercase;
-  background: #fff;
+  background: var(--surface);
 }
 
 .coupon .btn {
@@ -2379,7 +2396,7 @@ footer :focus-visible {
 }
 
 .summary {
-  background: #fff;
+  background: var(--surface);
   border-radius: 18px;
   padding: 12px 14px;
   margin-bottom: 14px;
@@ -2411,7 +2428,7 @@ footer :focus-visible {
   font-size: .86rem;
   font-weight: 800;
   margin-bottom: 6px;
-  color: #22332b;
+  color: var(--label);
 }
 
 .field input,
@@ -2421,7 +2438,7 @@ footer :focus-visible {
   height: 50px;
   border-radius: 14px;
   border: 1.5px solid var(--field);
-  background: #fff;
+  background: var(--surface);
   padding: 0 13px;
   font-size: 1rem;
 }
@@ -2435,7 +2452,7 @@ footer :focus-visible {
 
 .field input::placeholder,
 .field textarea::placeholder {
-  color: #62736a;
+  color: var(--ph);
 }
 
 .field [aria-invalid="true"] {
@@ -2477,7 +2494,7 @@ fieldset {
   grid-template-columns: auto 1fr;
   gap: 4px 12px;
   align-items: center;
-  background: #fff;
+  background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: 18px;
   padding: 13px 14px;
@@ -2485,7 +2502,7 @@ fieldset {
 }
 
 .pay label:has(input:checked) {
-  border-color: var(--green);
+  border-color: var(--green-bd);
   box-shadow: 0 0 0 2px var(--green) inset;
 }
 
@@ -2523,8 +2540,8 @@ fieldset {
 }
 
 .form-err {
-  background: #fde8e6;
-  color: #8a1c12;
+  background: var(--bad-bg);
+  color: var(--bad-ink);
   border-radius: 14px;
   padding: 10px 12px;
   font-weight: 700;
@@ -2535,7 +2552,7 @@ fieldset {
 /* Pago Nequi */
 
 .pay-box {
-  background: #fff;
+  background: var(--surface);
   border-radius: 24px;
   padding: 18px 16px;
   text-align: center;
@@ -2581,7 +2598,7 @@ fieldset {
   border-radius: 20px;
   border: 1.5px solid var(--line);
   padding: 10px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .qr img {
@@ -2624,9 +2641,9 @@ fieldset {
   flex: 0 0 auto;
   font-size: .8rem;
   font-weight: 800;
-  color: var(--green);
-  background: #fff;
-  border: 1.5px solid var(--green);
+  color: var(--green-tx);
+  background: var(--surface);
+  border: 1.5px solid var(--green-bd);
   border-radius: 999px;
   padding: 7px 12px;
 }
@@ -2634,15 +2651,15 @@ fieldset {
 .howto {
   text-align: left;
   font-size: .88rem;
-  color: #2d4038;
+  color: var(--ink-2);
   padding-left: 20px;
   display: grid;
   gap: 4px;
 }
 
 .warn {
-  background: #fff4c2;
-  color: #4a3d00;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   border-radius: 14px;
   padding: 10px 12px;
   font-size: .85rem;
@@ -2694,7 +2711,7 @@ fieldset {
   bottom: calc(var(--nav-h) + 30px + env(safe-area-inset-bottom));
   transform: translate(-50%,20px);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   padding: 12px 18px;
   border-radius: 14px;
   font-weight: 700;
@@ -3096,7 +3113,7 @@ html.k-loading body {
     display: flex;
     align-items: center;
     gap: 12px;
-    background: #fff;
+    background: var(--surface);
     border-radius: 20px;
     padding: 14px 16px;
     box-shadow: 0 2px 12px -8px rgba(10,42,32,.4);
@@ -3514,7 +3531,7 @@ mark.pendiente {
     flex: 0 0 48px;
     border-radius: 14px;
     background: var(--ink);
-    color: #fff;
+    color: var(--on-ink);
   }
 
   .search__x svg {
@@ -3608,7 +3625,7 @@ mark.pendiente {
   width: 38px;
   height: 38px;
   border-radius: 999px;
-  background: rgba(255,255,255,.92);
+  background: var(--glass);
   color: var(--ink);
   display: grid;
   place-items: center;
@@ -3649,7 +3666,7 @@ mark.pendiente {
 .card--skel .card__media,
 .card--skel i,
 .oc--skel {
-  background: linear-gradient(100deg,#e4eee8 30%,#f4f9f6 50%,#e4eee8 70%);
+  background: linear-gradient(100deg,var(--skel) 30%,var(--skel-2) 50%,var(--skel) 70%);
   background-size: 300% 100%;
   animation: kskel 1.3s linear infinite;
 }
@@ -3744,7 +3761,7 @@ mark.pendiente {
   gap: 10px;
   align-items: flex-start;
   text-align: left;
-  background: #e2f0e8;
+  background: var(--soft);
   color: #0e4d38;
   border-radius: 16px;
   padding: 12px 14px;
@@ -3771,10 +3788,10 @@ mark.pendiente {
   width: 76px;
   height: 76px;
   border-radius: 26px;
-  background: #fff;
+  background: var(--surface);
   display: grid;
   place-items: center;
-  color: var(--green);
+  color: var(--green-tx);
   box-shadow: var(--shadow);
 }
 
@@ -3812,7 +3829,7 @@ mark.pendiente {
   flex: 0 0 auto;
   padding: 8px 14px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   font-weight: 800;
   font-size: .86rem;
   color: var(--ink);
@@ -3832,7 +3849,7 @@ mark.pendiente {
 .otab[aria-selected="true"] {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 .otab[aria-selected="true"] span {
@@ -3843,7 +3860,7 @@ mark.pendiente {
 /* Mis pedidos: tarjeta de pedido */
 .oc {
   position: relative;
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
   padding: 14px;
   margin-bottom: 12px;
@@ -3990,7 +4007,7 @@ mark.pendiente {
 
 .oc__hint {
   font-size: .86rem;
-  color: #33463d;
+  color: var(--ink-2);
   font-weight: 600;
 }
 
@@ -4018,7 +4035,7 @@ mark.pendiente {
   gap: 6px;
   font-weight: 800;
   font-size: .86rem;
-  color: var(--green);
+  color: var(--green-tx);
 }
 
 .oc__go svg {
@@ -4027,8 +4044,8 @@ mark.pendiente {
 }
 
 .ord-msg {
-  background: #fff4c2;
-  color: #5a4a00;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   border-radius: 14px;
   padding: 10px 12px;
   font-size: .88rem;
@@ -4045,7 +4062,7 @@ mark.pendiente {
 
 .ord-add {
   margin-top: 8px;
-  background: #fff;
+  background: var(--surface);
   border-radius: 18px;
   padding: 4px 14px;
 }
@@ -4054,7 +4071,7 @@ mark.pendiente {
   cursor: pointer;
   font-weight: 800;
   font-size: .9rem;
-  color: var(--green);
+  color: var(--green-tx);
   padding: 12px 0;
 }
 
@@ -4082,7 +4099,7 @@ mark.pendiente {
 
 .od-hero .st {
   justify-self: start;
-  background: #fff;
+  background: var(--surface);
 }
 
 .od-hero h3 {
@@ -4106,7 +4123,7 @@ mark.pendiente {
 }
 
 .od-sec {
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
   padding: 16px;
   margin-bottom: 12px;
@@ -4332,7 +4349,7 @@ mark.pendiente {
 }
 
 .od-note {
-  background: #fff;
+  background: var(--surface);
   border-radius: 16px;
   padding: 12px 14px;
   font-size: .92rem;
@@ -4355,7 +4372,7 @@ mark.pendiente {
   top: 22px;
   bottom: -2px;
   width: 2px;
-  background: #d5e5db;
+  background: var(--line);
 }
 
 .tl li.done::before {
@@ -4378,12 +4395,12 @@ mark.pendiente {
   height: 20px;
   border-radius: 50%;
   border: 2px solid #9fb3a9;
-  background: #fff;
+  background: var(--surface);
 }
 
 .tl li.done .dot {
   background: var(--green);
-  border-color: var(--green);
+  border-color: var(--green-bd);
 }
 
 .tl li.done .dot::after {
@@ -4400,7 +4417,7 @@ mark.pendiente {
 
 .tl li.current .dot {
   background: var(--lime);
-  border-color: var(--green);
+  border-color: var(--green-bd);
   box-shadow: 0 0 0 5px rgba(198,255,61,.35);
   animation: kpulse 1.8s ease-in-out infinite;
 }
@@ -4538,7 +4555,7 @@ mark.pendiente {
   padding: 8px 16px;
   border-radius: 999px;
   border: 1.5px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-weight: 800;
   font-size: .9rem;
@@ -4546,7 +4563,7 @@ mark.pendiente {
 }
 
 .acct-tabs button[aria-checked="true"] {
-  border-color: var(--green);
+  border-color: var(--green-bd);
   background: var(--green);
   color: #fff;
 }
@@ -4628,8 +4645,8 @@ mark.pendiente {
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background: #fff;
-  color: var(--green);
+  background: var(--surface);
+  color: var(--green-tx);
   box-shadow: 0 8px 18px -10px rgba(10,42,32,.55);
 }
 
@@ -4693,7 +4710,7 @@ mark.pendiente {
   height: 46px;
   margin-left: -23px;
   border-radius: 50%;
-  border: 2px solid var(--green);
+  border: 2px solid var(--green-bd);
   opacity: 0;
   animation: pc-ring 2.4s ease-out infinite;
 }
@@ -4732,7 +4749,7 @@ mark.pendiente {
 
 /* Tarjeta de envío con la guía */
 .od-ship {
-  background: #fff;
+  background: var(--surface);
   border-radius: 22px;
   padding: 16px;
   margin-bottom: 12px;
@@ -4744,7 +4761,7 @@ mark.pendiente {
 .od-ship--wait {
   grid-template-columns: auto 1fr;
   align-items: center;
-  background: #f6faf8;
+  background: var(--surface-2);
   border: 1.5px dashed var(--line);
 }
 
@@ -4772,7 +4789,7 @@ mark.pendiente {
 
 .od-ship--wait .od-ship__ico {
   background: var(--soft);
-  color: var(--green);
+  color: var(--green-tx);
 }
 
 .od-ship__ico svg {
@@ -4826,7 +4843,7 @@ mark.pendiente {
   padding: 0 14px;
   border: 0;
   border-radius: 999px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
   font-weight: 800;
@@ -4925,7 +4942,7 @@ mark.pendiente {
   width: 18px;
   height: 18px;
   flex: none;
-  color: var(--green);
+  color: var(--green-tx);
 }
 
 .push-on .link-btn {
@@ -5039,7 +5056,7 @@ mark.pendiente {
 .rv-bars i {
   height: 7px;
   border-radius: 99px;
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -5063,7 +5080,7 @@ mark.pendiente {
   font-size: .82rem;
   padding: 6px 10px;
   border-radius: 99px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
 }
 
@@ -5127,7 +5144,7 @@ mark.pendiente {
   padding: 3px 8px;
   border-radius: 99px;
   background: var(--soft);
-  color: var(--green);
+  color: var(--green-tx);
 }
 
 .rv__txt {
@@ -5167,7 +5184,7 @@ mark.pendiente {
   padding: 10px 12px;
   border-left: 3px solid var(--lime);
   border-radius: 0 12px 12px 0;
-  background: #f6faf8;
+  background: var(--surface-2);
   font-size: .86rem;
 }
 
@@ -5203,7 +5220,7 @@ mark.pendiente {
   margin-top: 8px;
   padding: 16px;
   border-radius: 18px;
-  background: #f6faf8;
+  background: var(--surface-2);
   border: 1.5px solid var(--line);
   animation: pc-step .4s cubic-bezier(.2,.8,.2,1) both;
 }
@@ -5292,14 +5309,14 @@ mark.pendiente {
   padding: 9px 14px;
   border-radius: 99px;
   border: 1.6px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   font-weight: 700;
   font-size: .88rem;
 }
 
 .rv-chips input:checked + span {
   background: var(--green);
-  border-color: var(--green);
+  border-color: var(--green-bd);
   color: #fff;
 }
 
@@ -5335,7 +5352,7 @@ mark.pendiente {
   border-radius: 50%;
   border: 0;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
@@ -5550,7 +5567,7 @@ mark.pendiente {
   z-index: 2;
   padding: 12px;
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow);
   max-height: 60%;
@@ -5581,7 +5598,7 @@ mark.pendiente {
   max-height: calc(100dvh - 40px);
   overflow: auto;
   border-radius: 26px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 30px 60px -20px rgba(0,0,0,.55);
   transform: translateY(24px) scale(.94);
   opacity: 0;
@@ -5607,7 +5624,7 @@ html.popx-open body {
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgba(255,255,255,.92);
+  background: var(--glass);
   color: var(--ink);
   cursor: pointer;
   box-shadow: 0 4px 12px -4px rgba(0,0,0,.35);
@@ -5671,7 +5688,7 @@ html.popx-open body {
   font-family: 'Anton', sans-serif;
   font-weight: 400;
   font-size: 2.4rem;
-  color: var(--green);
+  color: var(--green-tx);
   display: block;
   line-height: 1;
 }
@@ -5691,7 +5708,7 @@ html.popx-open body {
   align-items: center;
   gap: 10px;
   padding: 8px 16px;
-  border: 2px dashed var(--green);
+  border: 2px dashed var(--green-bd);
   border-radius: 12px;
   margin: 4px 0 6px;
 }
@@ -5987,3 +6004,128 @@ html.popx-open body {
 
 /* Imágenes de productos: ocultas hasta que terminan de cargar, luego aparecen completas de golpe */
 img.nw:not(.ok) { visibility: hidden; }
+
+/* =====================================================================
+   Modo oscuro (lo activa el botón flotante; se guarda en el celular)
+   ===================================================================== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a120f;
+  --surface: #121c18;
+  --surface-2: #17231e;
+  --soft: #1b2a24;
+  --ink: #e9f2ed;
+  --ink-2: #c5d4cc;
+  --muted: #a1b4aa;
+  --line: #263a31;
+  --field: #6d8379;
+  --green-tx: #5fe0a6;
+  --green-bd: #3fbf86;
+  --label: #d3e0d9;
+  --price: #6ee7b0;
+  --red: #ff7b6b;
+  --focus: #8ab4ff;
+  --on-ink: #0a120f;
+  --ph: #82958b;
+  --hdr-bg: rgba(10,18,15,.88);
+  --warn-bg: #3a3108;
+  --warn-ink: #ffe28a;
+  --bad-bg: #3d1712;
+  --bad-ink: #ffb4a8;
+  --glass: rgba(18,28,24,.9);
+  --skel: #17231e;
+  --skel-2: #22332b;
+  --shadow: 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+/* El logo negro del encabezado no se vería: se usa el blanco */
+:root[data-theme="dark"] .brand img {
+  content: url("/img/punto-club-blanco.png");
+}
+
+:root[data-theme="dark"] .ok-note {
+  color: var(--green-tx);
+}
+
+/* Estados de los pedidos: mismo color de cada estado, en tono oscuro */
+:root[data-theme="dark"] .st,
+:root[data-theme="dark"] .od-hero {
+  background: color-mix(in srgb, var(--st, #9fb3a9) 20%, var(--surface));
+  color: color-mix(in srgb, var(--st, #9fb3a9) 45%, #fff);
+}
+
+:root[data-theme="dark"] .oc__hint {
+  color: var(--muted);
+}
+
+:root[data-theme="dark"] .tl .dot {
+  border-color: var(--line);
+}
+
+/* ---------- Botón flotante del tema ---------- */
+.theme-fab {
+  position: fixed;
+  right: 14px;
+  bottom: calc(var(--nav-h) + 30px + env(safe-area-inset-bottom));
+  z-index: 65;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 22px -8px rgba(10,42,32,.45);
+  transition: transform .15s ease, background .2s ease;
+}
+
+.theme-fab:active {
+  transform: scale(.92);
+}
+
+.theme-fab:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.theme-fab svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.theme-fab .i-sun,
+:root[data-theme="dark"] .theme-fab .i-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-fab .i-sun {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-fab {
+  box-shadow: 0 8px 22px -8px rgba(0,0,0,.8);
+}
+
+/* Mientras hay una ventana o el carrito abierto, el botón no estorba */
+body.locked .theme-fab {
+  display: none;
+}
+
+@media (min-width: 980px) {
+  .theme-fab {
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-fab {
+    transition: none;
+  }
+}
