@@ -1839,21 +1839,6 @@ footer :focus-visible {
   color: #d8d8d2;
 }
 
-/* Punto discreto para entrar al panel: área de toque cómoda en el celular */
-#adminLink {
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin: -12px -12px -12px auto;
-}
-
-#adminLink i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #6f6f69;
-}
 
 .sic {
   display: inline-flex;

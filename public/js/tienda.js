@@ -915,7 +915,10 @@
   document.querySelectorAll('input[name="empaque"]').forEach(function (r) { r.addEventListener('change', function () { if (r.checked) { S.empaque = r.value; renderCheckoutSummary(); } }); });
   function openCheckout(replace) {
     if (stack.indexOf($('cartSheet')) > -1) { closeLayer($('cartSheet'), false, true); replace = true; }
-    if (S.order) { resumeOrder(replace); return; }
+    // Solo se retoma un pedido que sigue esperando el pago. Si ya terminó (comprobante enviado,
+    // pago aprobado o separado), se cierra y empieza una compra nueva con el carrito actual.
+    if (S.order && S.order.step === 'pago') { resumeOrder(replace); return; }
+    if (S.order) finishOrder();
     if (!S.cart.length) return;
     applyPendingCoupon();
     prefillProfile();
@@ -1229,7 +1232,13 @@
     if (!isPaying) return true;
     return window.confirm('¿Salir del pago? Tu pedido ' + S.order.numero + ' queda guardado y puedes volver a esta pantalla desde el aviso de arriba.');
   }
-  function afterCheckoutClosed() { paying(false); renderResume(); }
+  function afterCheckoutClosed() {
+    paying(false);
+    // Pedido terminado: al cerrar la pantalla final se olvida aquí (sigue en "Mis pedidos"),
+    // así la próxima vez el carrito abre una compra nueva y no el comprobante anterior.
+    if (S.order && S.order.step !== 'pago') { finishOrder(); return; }
+    renderResume();
+  }
 
   /* Aviso para retomar un pedido pendiente */
   function renderResume() {
